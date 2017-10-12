@@ -74,14 +74,14 @@ function _isPortValid(port)
     return port>0 and port<65536
 end
 
-function _doConnect(sfd,remote_uuid,port) -- Connect to a remote device via uuid and port
+function _doConnect(sfd,remote_uuid,port) -- Connect to port 10 of a remote device with virtual port
     -- Send SYN package (1,1,1)
     local syn=string.pack("iii",1,1,1)
-    if(not netcard.send(remote_uuid,port,syn)) then 
+    if(not netcard.send(remote_uuid,10,syn,port)) then 
         return -1,"Network error"
     end
     -- Wait 1.5 seconds for SYN+ACK (1,1,3)
-    local e,remote_hwport=event.pull(1.5,"net_synack")
+    local e,remote_hwport,remote_cookie=event.pull(1.5,"net_synack")
     if(e==nil) then 
         return -2,"Connection timed out"
     end
@@ -135,9 +135,9 @@ function connect(sfd,remote_tag,port) -- Connect to a remote device
         if(remote_uuid == nil) then
             return -3,"Tag can not be resolved into uuid"
         else
-            local eret,emsg,remote_hwport=_doConnect(sfd,remote_uuid,port)
+            local eret,emsg,remote_hwport,remote_cookie=_doConnect(sfd,remote_uuid,port)
             if(eret==0) then
-                _setSocketStatus(sfd,"Connected",remote_hwport)
+                _setSocketStatus(sfd,"Connected",remote_hwport,remote_cookie)
                 return 0,"Success"
             else
                 return eret,emsg
@@ -178,14 +178,6 @@ function do_dhcp_client() -- Connect to DHCP Server and try to get a tag.
 
 end
 
-function do_arp_broadcast() -- ARP: Broadcast tag and uuid information of this device
-
-end
-
-function arp_listener() -- ARP: Listen to arp broadcast and record informations. Notice that this listener also replies to specific arp-request
-
-end
-
 function do_arp_query(tag) -- ARP: Query uuid with tag, might send arp-request
     local ret,uuid=_isInArpCache(tag)
     if(ret) then return uuid
@@ -202,13 +194,41 @@ function do_arp_query(tag) -- ARP: Query uuid with tag, might send arp-request
 end
 
 function run_arp() -- Start ARP Services in background
-
-end
+event.listen("modem_message",
+function(_event,_receiver,sender,_port,_distance,...)
+if(_port==9) then
+if(arg[1]==string.pack("iii",1,0,0) and arg[2]~=nil) then -- Received an ARP Broadcast
+if(arpker[arg[2]]==nil) then
+arpker[arg[2]]=sender
+event.push("net_newarp",arg[2],sender)
+elseif(arpker[arg[2]]~=sender) then
+arpker[arg[2]]=sender
+event.push("net_arpchanged",arg[2],sender)
+end -- arpker check
+elseif(arg[1]==string.pack("iii",1,0,1) and arg[2]~=nil) then -- Received an ARP Quest Broadcast
+//todo
+end -- arg1 and arg2 check
+end -- port check
+end) -- callback
+end 
 
 function run_dhcp_client() -- Start DHCP Client in background
 
 end
 
 function run_tcp() -- Start TCP Services in background
-
+event.listen("modem_message",
+function(_event,_receiver,sender,_port,_distance...)
+if(_port==10) then
+if(arg[1]==string.pack("iii",1,1,1)) then --SYN
+event.push("net_newsyn",sender,arg[2])
+end
+elseif(_port==11) then
+if(arg[1]==string.pack("iii",1,1,3)) then --SYN/ACK
+event.push("net_newsynack",sender)
+end
+end
+end)
+netcard.open(10)
+netcard.open(11)
 end
