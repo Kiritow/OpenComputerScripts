@@ -49,6 +49,10 @@ local mid_free=true
 local mid_direction="ab"
 local ab_next_free=true
 local ba_next_free=true
+local ab_station_time=0
+local ba_station_time=0
+local ab_exit_time=0
+local ba_exit_time=0
 
 --[[
     Internal Functions
@@ -96,6 +100,25 @@ local function main()
         -- Flush input
         updateRedstoneInput()
         -- Update status
+        if(ab_station_time>0) then 
+        ab_station_time=ab_station_time+1
+        end
+        if(ba_station_time>0) then
+        ba_station_time=ba_statiom_time+1
+        end
+        if(ab_exit_time>0) then
+        ab_exit_time=ab_exit_time+1
+        if(ab_exit_time>10) then -- Exit will reset in 10 loops (5seconds)
+        ab_exit_time=0 
+        end
+        end
+        if(ba_exit_time>0) then
+        ba_exit_time=ba_exit_time+1
+        if(ba_exit_time>10) then -- Exit will reset in 10 loops (5seconds)
+        ba_exit_time=0 
+        end
+        end
+        
 
         -- Judge Incoming bus.
         if(ab_in_OutsideSensor>0) then -- New incoming bus from A to B
@@ -104,6 +127,7 @@ local function main()
                     ab_station_free=false -- Mark station busy.
                     ab_out_Outside=15 -- enable to allow incoming
                     ab_out_Motor=0 -- disable to allow incoming to station
+                    ab_station_time=1
                 else -- AB Station is not free
                     -- This train should wait outside the station
                 end
@@ -112,6 +136,7 @@ local function main()
                     mid_free=false -- Mark mid busy.
                     ab_out_Outside=15 -- enable to allow incoming
                     ab_out_Motor=15 -- enable motor to let it pass.
+                    mid_direction="ab"
                 else -- Mid is busy
                     -- This train should wait outside the station
                 end
@@ -124,6 +149,7 @@ local function main()
                     ba_station_free=false -- Mark station busy.
                     ba_out_Outside=15 -- enable to allow incoming
                     ba_out_Motor=0 -- disable to allow incoming to station
+                    ba_station_time=1
                 else -- BA Station is not free
                     -- This train should wait outside the station
                 end
@@ -132,11 +158,32 @@ local function main()
                     mid_free=false -- Mark mid busy.
                     ba_out_Outside=15 -- enable to allow incoming
                     ba_out_Motor=15 -- enable motor to let it pass.
+                    mid_direction="ba"
                 else -- Mid is busy
                     -- This train should wait outside the station
                 end
-            end
+           	end
         end
+        
+        if(ab_next_free and ab_exit_time==0) then -- AB next free
+        if(ab_station_time>16) then -- 8 seconds in station
+        ab_out_Stop=15 -- enable stop to let it leave
+        ab_exit_time=1 -- Start Count time
+        elseif((not mid_free) and mid_direction=="ab") then -- Mid is busy and will leave with AB direction
+        midb_out_Stop=15 --enable stop to let it leave
+        ab_exit_time=1 -- Start Count time
+        end
+        end
+        
+        if(ba_next_free and ba_exit_time==0) then -- BA next free
+        if(ba_station_time>16) then -- 8 seconds in station
+        ba_out_Stop=15 -- enable stop to let it leave
+        ba_exit_time=1 -- Start count time
+        elseif((not mid_free) and mid_direction=="ba") then -- Mid is busy and will leave with BA direction
+        mida_out_Stop=15 -- enable stop to let it leave
+        ba_exit_time=1 -- Start count time
+        end
+	       end
 
         -- Set output
         updateRedstoneOutput()
