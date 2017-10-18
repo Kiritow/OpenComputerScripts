@@ -60,12 +60,29 @@ local ba_exit_time=0
 
 local netpack_head=string.pack("iii",6,1,1)
 
+local function sendTrainLeaveToB()
+trainnet.send(netpack_head,station_id,station_b_id,1)
+end
+
+local function sendTrainLeaveToA()
+trainnet.send(netpack_head,station_id,station_a_id,1)
+end
+
+local function sendTrainArriveFromA()
+trainnet.send(netpack_head,station_a_id,2)
+end
+
+local function sendTrainArriveFromB()
+trainnet.send(netpack_head,station_b_id,2)
+end
+
 local function doInit()
     -- TODO: You must change this function to fix your station
     event.listen("redstone_change",
         function(_event,_addr,_side,_old,_new)
             -- [NOTICE] Change information here!!
             -- Here: your must send an arrive message to last station
+            -- TODO:
             
         end
     )
