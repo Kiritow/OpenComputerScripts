@@ -23,11 +23,25 @@ local redout1=proxy("redstone","")
 local redout2=proxy("redstone","")
 
 local function updateRedstoneInput()
-
+ab_st=redin1.getInput(sides.north)
+ab_sr=redin1.getInput(sides.east)
+ba_st=redin1.getInput(sides.south)
+ba_sr=redin1.getInput(sides.west)
+ab_lin=redin2.getInput(sides.north)
+ab_lout=redin2.getInput(sides.east)
+ba_lin=redin2.getInput(sides.south)
+ba_lout=redin2.getInput(sides.west)
 end
 
 local function updateRedstoneOutput()
-
+redout1.setOutput(sides.north,ab_ko)
+redout1.setOutput(sides.east,ab_m)
+redout1.setOutput(sides.south,ab_ks)
+redout1.setOutput(sides.west,mid_ka)
+redout2.setOutput(sides.north,ba_ko)
+redout2.setOutput(sides.east,ba_m)
+redout2.setOutput(sides.south,ba_ks)
+redout2.setOutput(sides.west,mid_kb)
 end
 
 -- Internal Schedule Status (Notice: Program must start without any trains in station)
@@ -58,7 +72,7 @@ local function main()
         ab_station_time=ab_station_time+1
         end
         if(ba_station_time>0) then
-        ba_station_time=ba_statiom_time+1
+        ba_station_time=ba_station_time+1
         end
         if(mid_time>0) then 
         mid_time=mid_time+1
