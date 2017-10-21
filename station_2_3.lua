@@ -51,6 +51,24 @@ local mid_time = 0
 local ab_exit_time = 0
 local ba_exit_time = 0
 
+-- Debug Output
+local dprint = print
+
+local function debugClearOutput()
+    if(dprint ~= nil) then
+        os.execute("clear")
+    end
+end
+
+local function debugOutputInfo()
+    dprint("ab_st",ab_st,"ab_sr",ab_sr,"ba_st",ba_st,"ba_sr",ba_sr,"ab_lin",ab_lin,"ab_lout",ab_lout,"ba_lin",ba_lin,"ba_lout",ba_lout)
+    dprint("mid_direction",mid_direction,"ab_station_time",ab_station_time,"ba_station_time",ba_station_time,"mid_time",mid_time,"ab_exit_time",ab_exit_time,"ba_exit_time",ba_exit_time)
+end
+
+local function debugValueInfo()
+    dprint("ab_ko",ab_ko,"ab_m",ab_m,"ab_ks",ab_ks,"mid_ka",mid_ka,"ba_ko",ba_ko,"ba_m",ba_m,"ba_ks",ba_ks,"mid_kb",mid_kb)
+end
+
 --[[
     Internal Functions
 ]]
@@ -59,12 +77,21 @@ local function doInit()
     updateRedstoneOutput()
 end
 
+local function doCheck()
+    if(redin1==nil or redin2==nil or redout1==nil or redout2==nil) then 
+        print("Redstone Configure")
+    end
+end
+
 -- Main Program
 local function main()
+    doCheck()
     doInit()
     while true do
+        debugClearOutput()
         -- Flush input
         updateRedstoneInput()
+        debugOutputInfo()
         -- Update status
         if (ab_station_time > 0) then
             ab_station_time = ab_station_time + 1
@@ -92,15 +119,18 @@ local function main()
         if (ab_st > 0) then -- New incoming bus from A to B
             if (ab_sr > 0) then -- This bus want to stop
                 if (ab_station_time == 0) then -- If AB Station is free
+                    dprint("A-->B Train In")
                     ab_ko = 15 -- enable to allow incoming
                     ab_ks = 0 -- disable to let it stop
                     ab_m = 0 -- disable to allow incoming to station
                     ab_station_time = 1 -- Start Time Counter
                 else -- AB Station is not free
                     -- This train should wait outside the station
+                    dprint("A-->B Train Pending")
                 end
             else -- This bus want to pass by
                 if (mid_time == 0) then -- Mid is free
+                    dprint("A-->Mid Train In")
                     ab_ko = 15 -- enable to allow incoming
                     ab_m = 15 -- enable motor to let it pass.
                     mid_ka = 15 -- enable switch from A
@@ -108,6 +138,7 @@ local function main()
                     mid_direction = "ab"
                     mid_time = 1 -- Start time counter
                 else -- Mid is busy
+                    dprint("A-->Mid Train Pending")
                     -- This train should wait outside the station
                 end
             end
@@ -116,15 +147,18 @@ local function main()
         if (ba_st > 0) then -- New incoming bus from B to A
             if (ba_sr > 0) then -- This bus want to stop
                 if (ba_station_time == 0) then -- If BA Station is free
+                    dprint("B-->A Train In")
                     ba_ko = 15 -- enable to allow incoming
                     ba_ks = 0 -- disable to let it stop
                     ba_m = 0 -- disable to allow incoming to station
                     ba_station_time = 1 -- Start Time Counter
                 else -- BA Station is not free
                     -- This train should wait outside the station
+                    dprint("B-->A Train Pending")
                 end
             else -- This bus want to pass by
                 if (mid_time == 0) then -- Mid is free
+                    dprint("B-->Mid Train In")
                     ba_ko = 15 -- enable to allow incoming
                     ba_m = 15 -- enable motor to let it pass.
                     mid_ka = 0
@@ -132,6 +166,7 @@ local function main()
                     mid_direction = "ba"
                     mid_time = 1
                 else -- Mid is busy
+                    dprint("B-->Mid Train Pending")
                     -- This train should wait outside the station
                 end
             end
@@ -141,19 +176,23 @@ local function main()
             -- Judge which train should pass.
             if (ab_station_time > 16 and (mid_time > 0 and mid_direction == "ab")) then -- Two Trains
                 if (ab_station_time > mid_time) then -- StationTrain wait longer.
+                    dprint("A-->B Train Out")
                     ab_station_time = 0 -- Stop counter
                     ab_ks = 15 -- enable swith to let it go
                     ab_exit_time = 1
                 else -- MidTrain wait longer
+                    dprint("Mid-->B Train out")
                     mid_time = 0 -- Stop Counter
                     mid_kb = 15
                     ab_exit_time = 1
                 end
             elseif (ab_station_time > 16) then --Only Station Train
+                dprint("A-->B Train Out")
                 ab_station_time = 0
                 ab_ks = 15
                 ab_exit_time = 1
             elseif (mid_time > 0 and mid_direction == "ab") then -- Only Mid Train
+                dprint("Mid-->B Train Out")
                 mid_time = 0
                 mid_kb = 15
                 ab_exit_time = 1
@@ -164,29 +203,36 @@ local function main()
             -- Judge which train should pass.
             if (ba_station_time > 16 and (mid_time > 0 and mid_direction == "ba")) then -- Two Trains
                 if (ba_station_time > mid_time) then -- StationTrain wait longer.
+                    dprint("B-->A Train Out")
                     ba_station_time = 0 -- Stop counter
                     ba_ks = 15 -- enable swith to let it go
                     ba_exit_time = 1
                 else -- MidTrain wait longer
+                    dprint("Mid-->A Train Out")
                     mid_time = 0 -- Stop Counter
                     mid_ka = 15
                     ba_exit_time = 1
                 end
             elseif (ba_station_time > 16) then --Only Station Train
+                dprint("B-->A Train Out")
                 ba_station_time = 0
                 ba_ks = 15
                 ba_exit_time = 1
             elseif (mid_time > 0 and mid_direction == "ba") then -- Only Mid Train
+                dprint("Mid-->A Train Out")
                 mid_time = 0
                 mid_ka = 15
                 ba_exit_time = 1
             end -- No train
         end
 
+        debugValueInfo()
+
         -- Set output
         updateRedstoneOutput()
 
         -- Sleep for next loop
+        dprint("==========")
         os.sleep(0.5)
     end
 end
