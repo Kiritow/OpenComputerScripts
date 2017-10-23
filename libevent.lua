@@ -22,3 +22,19 @@ function WaitEventFor(EventName,TimeOut)
     checknumber(TimeOut)
     return event.pull(TimeOut,EventName)
 end
+
+function AddTimer(Interval,CallbackFunction,Times)
+    checknumber(Interval)
+    checkfunction(CallbackFunction)
+    if(type(Times)~=nil) then -- Timer will run [Times] times.
+        checknumber(Times)
+        return event.timer(Interval,CallbackFunction,Times)
+    else -- Timer will run once.
+        return event.timer(Interval,CallbackFunction)
+    end
+end
+
+function RemoveTimer(TimerID)
+    checknumber(TimerID)
+    return event.cancel(TimerID)
+end
