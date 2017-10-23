@@ -23,6 +23,11 @@ function WaitEventFor(EventName,TimeOut)
     return event.pull(TimeOut,EventName)
 end
 
+function PushEvent(EventName,...)
+    checkstring(EventName)
+    return event.push(EventName,...)
+end
+
 function AddTimer(Interval,CallbackFunction,Times)
     checknumber(Interval)
     checkfunction(CallbackFunction)
