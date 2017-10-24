@@ -47,9 +47,9 @@ local redirect_tb=
     ["ab_ks"]={redout1,sides.south},
     ["mid_ka"]={redout1,sides.west},
     ["ba_ko"]={redout2,sides.north},
-    ["ba_m"]={redout1,sides.east},
-    ["ba_ks"]={redout1,sides.south},
-    ["mid_kb"]={redout1,sides.west},
+    ["ba_m"]={redout2,sides.east},
+    ["ba_ks"]={redout2,sides.south},
+    ["mid_kb"]={redout2,sides.west},
 
     ["last_unused"]={"unused",sides.north}
 }
