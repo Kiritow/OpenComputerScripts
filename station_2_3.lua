@@ -2,8 +2,9 @@
 Station 2/3 Schedule Program
 ]]
 require("util")
+require("libevent")
+require("checkarg")
 local sides = require("sides")
-local event = require("event")
 
 -- Config your update functions here (Do not change function name)
 local redin1 = proxy("redstone", "")
@@ -145,15 +146,30 @@ local function clearRedstoneOutput()
     disabledevice("mid_kb")
 end
 
+local function doCheck()
+    if(redin1==nil or redin2==nil or redout1==nil or redout2==nil) then
+        error("Check Failed. Please fill your redstone IO configure")
+    end
+
+    if(not (redin1 == redin2 and redin2 == redout1 and redout1 == redout2) ) then 
+        -- Check OK
+        print("BeforeCheck Pass.")
+    else
+        error("Check Failed. Please check your redstone IO configure.")
+    end
+end
+
 local function doInit()
     -- Flash output to zero.
     clearRedstoneOutput()
     AddEventListener(
-        "interrupted",
-        function()
-            running = false
-            print("Interrupt Signal Received.")
-            return false --Unregister event listener itself
+        "key_down",
+        function(Event,Addr,InputChar)
+            if(InputChar==32) then -- Pressed Space
+                running = false
+                print("Interrupt Signal Received.")
+                return false --Unregister event listener itself
+            end
         end
     )
 
@@ -324,7 +340,7 @@ local function TCSMain()
             end -- No train, do nothing
         end -- End of BA judge
 
-        debugValueInfo()
+        debugOutputInfo()
 
         -- Sleep for next loop
         dprint("==========")
