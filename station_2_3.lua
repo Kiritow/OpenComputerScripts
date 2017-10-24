@@ -29,6 +29,44 @@ local function updateRedstoneInput()
     ba_lout = redin2.getInput(sides.west)
 end
 
+-- Redirect Table
+local redirect_tb=
+{
+    ["ab_st"]={redin1,sides.north},
+    ["ab_sr"]={redin1,sides.east},
+    ["ba_st"]={redin1,sides.south},
+    ["ba_sr"]={redin1,sides.west},
+    ["ab_lin"] = {redin2,sides.north},
+    ["ab_lout"] = {redin2,sides.east},
+    ["ba_lin"] = {redin2,sides.south},
+    ["ba_lout"] = {redin2,sides.west},
+
+    ["ab_ko"]={redout1,sides.north},
+    ["ab_m"]={redout1,sides.east},
+    ["ab_ks"]={redout1,sides.south},
+    ["mid_ka"]={redout1,sides.west},
+    ["ba_ko"]={redout2,sides.north},
+    ["ba_m"]={redout1,sides.east},
+    ["ba_ks"]={redout1,sides.south},
+    ["mid_kb"]={redout1,sides.west},
+
+    ["last_unused"]={"unused",sides.north}
+}
+
+local function getNameFromRaw(Device,Side)
+    for k,t in pairs(redirect_tb) do 
+        if(t[1]==Device and t[2]==Side) then 
+            return k
+        end
+    end
+
+    return nil
+end
+
+local function getRawFromName(Name)
+    return redirect_tb[Name][1],redirect_tb[Name][2]
+end
+
 -- Internal Schedule Status (Notice: Program must start without any trains in station)
 local mid_direction
 local ab_station_time = 0
@@ -36,66 +74,90 @@ local ba_station_time = 0
 local mid_time = 0
 local ab_exit_time = 0
 local ba_exit_time = 0
-local midab_exit_time=0 -- Mid needs cool
-local midba_exit_time=0
+local midab_exit_time = 0 -- Mid needs cool
+local midba_exit_time = 0
 
 -- NOOP print function (for release use)
 local function noop_print(...)
-
 end
 
 -- Debug Output
 local dprint = print
 
 local function debugOutputInfo()
-    dprint("ab_st",ab_st,"ab_sr",ab_sr,"ba_st",ba_st,"ba_sr",ba_sr,"ab_lin",ab_lin,"ab_lout",ab_lout,"ba_lin",ba_lin,"ba_lout",ba_lout)
-    dprint("mid_direction",mid_direction,"ab_station_time",ab_station_time,"ba_station_time",ba_station_time,"mid_time",mid_time,"ab_exit_time",ab_exit_time,"ba_exit_time",ba_exit_time,"midab_exit_time",midab_exit_time,"midba_exit_time",midba_exit_time)
+    dprint(
+        "ab_st",ab_st,
+        "ab_sr",ab_sr,
+        "ba_st",ba_st,
+        "ba_sr",ba_sr,
+        "ab_lin",ab_lin,
+        "ab_lout",ab_lout,
+        "ba_lin",ba_lin,
+        "ba_lout",ba_lout
+    )
+    dprint(
+        "mid_direction",mid_direction,
+        "ab_station_time",ab_station_time,
+        "ba_station_time",ba_station_time,
+        "mid_time",mid_time,
+        "ab_exit_time",ab_exit_time,
+        "ba_exit_time",ba_exit_time,
+        "midab_exit_time",midab_exit_time,
+        "midba_exit_time",midba_exit_time
+    )
 end
 
 --[[
     Internal Functions
 ]]
-
 local function enabledevice(Name)
-local d,s=getRawFromName(Name)
-if(d~=nil and s~=nil) then d.setOutput(s,15) end
+    local d, s = getRawFromName(Name)
+    if (d ~= nil and s ~= nil) then
+        d.setOutput(s, 15)
+    end
 end
 
 local function disabledevice(Name)
-local d,s=getRawFromName(Name)
-if(d~=nil and s~=nil) then d.setOutput(s,15) end
+    local d, s = getRawFromName(Name)
+    if (d ~= nil and s ~= nil) then
+        d.setOutput(s, 15)
+    end
 end
 
 -- Notice: RedTick=0.1s GameTick=0.05s
 local function delay(loop)
-if(loop<0.2) then loop=0.2 end -- Less than 0.1s is useless
-os.sleep(loop*0.5)
+    if (loop < 0.2) then
+        loop = 0.2
+    end -- Less than 0.1s is useless
+    os.sleep(loop * 0.5)
 end
 
-local running=true
+local running = true
 
 local function clearRedstoneOutput()
-disabledevice("ab_ko")
-disabledevice("ab_m")
-disabledevice("ab_ks")
-disabledevice("ba_ko")
-disabledevice("ba_m")
-disabledevice("ba_ks")
-disabledevice("mid_ka")
-disabledevice("mid_kb")
+    disabledevice("ab_ko")
+    disabledevice("ab_m")
+    disabledevice("ab_ks")
+    disabledevice("ba_ko")
+    disabledevice("ba_m")
+    disabledevice("ba_ks")
+    disabledevice("mid_ka")
+    disabledevice("mid_kb")
 end
 
 local function doInit()
     -- Flash output to zero.
     clearRedstoneOutput()
-    AddEventListener("interrupted",
-    function()
-    running=false
-    print("Interrupt Signal Received.")
-    return false --Unregister event listener itself
-    end)
-    
-    running=true
+    AddEventListener(
+        "interrupted",
+        function()
+            running = false
+            print("Interrupt Signal Received.")
+            return false --Unregister event listener itself
+        end
+    )
+
+    running = true
 end
 
 -- Main Program
@@ -105,7 +167,7 @@ local function TCSMain()
     while running do
         -- Flush input
         updateRedstoneInput()
-        
+
         -- Update status
         if (ab_station_time > 0) then
             ab_station_time = ab_station_time + 1
@@ -128,19 +190,18 @@ local function TCSMain()
                 ba_exit_time = 0
             end
         end
-        if(midab_exit_time>0) then
-        midab_exit_time=midab_exit_time+1
-        if(midab_exit_time>8) then -- MidAB will cool in 8 loops (4seconds)
-        midab_exit_time=0
+        if (midab_exit_time > 0) then
+            midab_exit_time = midab_exit_time + 1
+            if (midab_exit_time > 8) then -- MidAB will cool in 8 loops (4seconds)
+                midab_exit_time = 0
+            end
         end
+        if (midba_exit_time > 0) then
+            midba_exit_time = midba_exit_time + 1
+            if (midba_exit_time > 8) then -- MidBA will cool in 8 loops (4seconds)
+                midba_exit_time = 0
+            end
         end
-        if(midba_exit_time>0) then
-        midba_exit_time=midba_exit_time+1
-        if(midba_exit_time>8) then -- MidBA will cool in 8 loops (4seconds)
-        midba_exit_time=0
-        end
-        end
-        
 
         -- Judge Incoming bus.
         if (ab_st > 0) then -- New incoming bus from A to B
@@ -158,7 +219,7 @@ local function TCSMain()
                     dprint("A-->B Train Pending")
                 end
             else -- This bus want to pass by
-                if (mid_time == 0 and midba_exit_time==0) then -- Mid is free and MidBA is cool
+                if (mid_time == 0 and midba_exit_time == 0) then -- Mid is free and MidBA is cool
                     dprint("A-->Mid Train In")
                     enabledevice("ab_m") -- enable motor to let it pass.
                     enabledevice("mid_ka") -- enable switch from A
@@ -169,8 +230,8 @@ local function TCSMain()
                     disabledevice("ab_ko") -- disable to block another train
                     mid_time = 1 -- Start time counter
                 else -- Mid is busy
-                    dprint("A-->Mid Train Pending")
                     -- This train should wait outside the station
+                    dprint("A-->Mid Train Pending")
                 end
             end
         end
@@ -190,9 +251,10 @@ local function TCSMain()
                     dprint("B-->A Train Pending")
                 end
             else -- This bus want to pass by
-                if (mid_time == 0 and midab_exit_time==0) then -- Mid is free and MidAB is free
+                if (mid_time == 0 and midab_exit_time == 0) then -- Mid is free and MidAB is free
                     dprint("B-->Mid Train In")
-                    enabledevice("ba_m")-- enable motor to let it pass.
+                    enabledevice("ba_m")
+                     -- enable motor to let it pass.
                     disabledevice("mid_ka")
                     enabledevice("mid_kb")
                     enabledevice("ba_ko") -- enable to allow incoming
@@ -201,8 +263,8 @@ local function TCSMain()
                     mid_direction = "ba"
                     mid_time = 1
                 else -- Mid is busy
-                    dprint("B-->Mid Train Pending")
                     -- This train should wait outside the station
+                    dprint("B-->Mid Train Pending")
                 end
             end
         end
