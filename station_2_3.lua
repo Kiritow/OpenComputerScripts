@@ -121,16 +121,19 @@ end
 local function disabledevice(Name)
     local d, s = getRawFromName(Name)
     if (d ~= nil and s ~= nil) then
-        d.setOutput(s, 15)
+        d.setOutput(s, 0)
     end
 end
 
 -- Notice: RedTick=0.1s GameTick=0.05s
 local function delay(loop)
-    if (loop < 0.2) then
-        loop = 0.2
+    local perloop=1
+
+    if (loop*perloop < 0.1) then
+        loop=0.1/perloop;
     end -- Less than 0.1s is useless
-    os.sleep(loop * 0.5)
+    
+    os.sleep(loop * perloop)
 end
 
 local running = true
@@ -220,6 +223,8 @@ local function TCSMain()
         end
 
         -- Judge Incoming bus.
+        local ctflag=false
+
         if (ab_st > 0) then -- New incoming bus from A to B
             if (ab_sr > 0) then -- This bus want to stop
                 if (ab_station_time == 0) then -- If AB Station is free
@@ -230,6 +235,7 @@ local function TCSMain()
                     delay(0.5) -- delay 50% loop time
                     disabledevice("ab_ko") -- disable to block another train
                     ab_station_time = 1 -- Start Time Counter
+                    ctflag=true
                 else -- AB Station is not free
                     -- This train should wait outside the station
                     dprint("A-->B Train Pending")
@@ -245,6 +251,7 @@ local function TCSMain()
                     delay(0.5)
                     disabledevice("ab_ko") -- disable to block another train
                     mid_time = 1 -- Start time counter
+                    ctflag=true
                 else -- Mid is busy
                     -- This train should wait outside the station
                     dprint("A-->Mid Train Pending")
@@ -262,6 +269,7 @@ local function TCSMain()
                     delay(0.5)
                     disabledevice("ba_ko") -- disable to block another train
                     ba_station_time = 1 -- Start Time Counter
+                    ctflag=true
                 else -- BA Station is not free
                     -- This train should wait outside the station
                     dprint("B-->A Train Pending")
@@ -278,6 +286,7 @@ local function TCSMain()
                     disabledevice("ba_ko") -- disable to block another train
                     mid_direction = "ba"
                     mid_time = 1
+                    ctflag=true
                 else -- Mid is busy
                     -- This train should wait outside the station
                     dprint("B-->Mid Train Pending")
@@ -285,60 +294,62 @@ local function TCSMain()
             end
         end
 
-        if (ab_lout > 0 and ab_exit_time == 0) then -- AB next free
-            -- Judge which train should pass.
-            if (ab_station_time > 16 and (mid_time > 0 and mid_direction == "ab")) then -- Two Trains
-                if (ab_station_time > mid_time) then -- StationTrain wait longer.
+        if(not ctflag) then -- No Train Coming In
+            if (ab_lout > 0 and ab_exit_time == 0) then -- AB next free
+                -- Judge which train should pass.
+                if (ab_station_time > 16 and (mid_time > 0 and mid_direction == "ab")) then -- Two Trains
+                    if (ab_station_time > mid_time) then -- StationTrain wait longer.
+                        dprint("A-->B Train Out")
+                        ab_station_time = 0 -- Stop counter
+                        enabledevice("ab_ks") -- enable swith to let it go
+                        ab_exit_time = 1 -- Start Exit Counter
+                    else -- MidTrain wait longer
+                        dprint("Mid-->B Train out")
+                        mid_time = 0 -- Stop Counter
+                        enabledevice("mid_kb") -- enable switch
+                        ab_exit_time = 1 -- Start Exit Counter
+                        midab_exit_time = 1 -- Start mid exit counter
+                    end
+                elseif (ab_station_time > 16) then --Only Station Train
                     dprint("A-->B Train Out")
-                    ab_station_time = 0 -- Stop counter
-                    enabledevice("ab_ks") -- enable swith to let it go
-                    ab_exit_time = 1 -- Start Exit Counter
-                else -- MidTrain wait longer
-                    dprint("Mid-->B Train out")
-                    mid_time = 0 -- Stop Counter
-                    enabledevice("mid_kb") -- enable switch
-                    ab_exit_time = 1 -- Start Exit Counter
-                    midab_exit_time = 1 -- Start mid exit counter
-                end
-            elseif (ab_station_time > 16) then --Only Station Train
-                dprint("A-->B Train Out")
-                ab_station_time = 0 -- Stop Counter
-                enabledevice("ab_ks")
-                ab_exit_time = 1 -- Start exit counter
-            elseif (mid_time > 0 and mid_direction == "ab") then -- Only Mid Train
-                dprint("Mid-->B Train Out")
-                mid_time = 0 -- Stop counter
-                enabledevice("mid_kb")
-                ab_exit_time = 1 -- Start exit counter
-            end -- No train, do nothing
-        end -- End of AB judge
+                    ab_station_time = 0 -- Stop Counter
+                    enabledevice("ab_ks")
+                    ab_exit_time = 1 -- Start exit counter
+                elseif (mid_time > 0 and mid_direction == "ab") then -- Only Mid Train
+                    dprint("Mid-->B Train Out")
+                    mid_time = 0 -- Stop counter
+                    enabledevice("mid_kb")
+                    ab_exit_time = 1 -- Start exit counter
+                end -- No train, do nothing
+            end -- End of AB judge
 
-        if (ba_lout > 0 and ba_exit_time == 0) then -- BA next free
-            -- Judge which train should pass.
-            if (ba_station_time > 16 and (mid_time > 0 and mid_direction == "ba")) then -- Two Trains
-                if (ba_station_time > mid_time) then -- StationTrain wait longer.
+            if (ba_lout > 0 and ba_exit_time == 0) then -- BA next free
+                -- Judge which train should pass.
+                if (ba_station_time > 16 and (mid_time > 0 and mid_direction == "ba")) then -- Two Trains
+                    if (ba_station_time > mid_time) then -- StationTrain wait longer.
+                        dprint("B-->A Train Out")
+                        ba_station_time = 0 -- Stop counter
+                        enabledevice("ba_ks") -- enable swith to let it go
+                        ba_exit_time = 1 -- Start exit counter
+                    else -- MidTrain wait longer
+                        dprint("Mid-->A Train Out")
+                        mid_time = 0 -- Stop Counter
+                        enabledevice("mid_ka")
+                        ba_exit_time = 1 -- Start Counter
+                    end
+                elseif (ba_station_time > 16) then --Only Station Train
                     dprint("B-->A Train Out")
                     ba_station_time = 0 -- Stop counter
                     enabledevice("ba_ks") -- enable swith to let it go
                     ba_exit_time = 1 -- Start exit counter
-                else -- MidTrain wait longer
+                elseif (mid_time > 0 and mid_direction == "ba") then -- Only Mid Train
                     dprint("Mid-->A Train Out")
                     mid_time = 0 -- Stop Counter
                     enabledevice("mid_ka")
                     ba_exit_time = 1 -- Start Counter
-                end
-            elseif (ba_station_time > 16) then --Only Station Train
-                dprint("B-->A Train Out")
-                ba_station_time = 0 -- Stop counter
-                enabledevice("ba_ks") -- enable swith to let it go
-                ba_exit_time = 1 -- Start exit counter
-            elseif (mid_time > 0 and mid_direction == "ba") then -- Only Mid Train
-                dprint("Mid-->A Train Out")
-                mid_time = 0 -- Stop Counter
-                enabledevice("mid_ka")
-                ba_exit_time = 1 -- Start Counter
-            end -- No train, do nothing
-        end -- End of BA judge
+                end -- No train, do nothing
+            end -- End of BA judge
+        end -- End of ctflag
 
         debugOutputInfo()
 
