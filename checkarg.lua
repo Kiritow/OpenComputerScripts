@@ -28,6 +28,10 @@ function checkfunc(n)
     do_check(n, "function")
 end
 
+function checkfunction(n)
+    do_check(n, "function")
+end
+
 function checktable(n)
     do_check(n, "table")
 end
