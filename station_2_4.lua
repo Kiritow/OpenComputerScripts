@@ -11,6 +11,7 @@ local sides=require("sides")
 -- Config your update functions here (Do not change function name)
 local redin1 = proxy("redstone", "")
 local redin2 = proxy("redstone", "")
+local redin3 = proxy("redstone", "")
 local redout1 = proxy("redstone", "")
 local redout2 = proxy("redstone", "")
 
@@ -24,6 +25,12 @@ local redirect_tb=
     ["ba_st"] = {redin2,sides.north},
     ["ba_sr"] = {redin2,sides.east},
     ["ba_lout"] = {redin2,sides.south},
+
+    -- ins: Inside station sensor
+    ["ab_ins1"] = {redin3,sides.north},
+    ["ab_ins2"] = {redin3,sides.east},
+    ["ba_ins1"] = {redin3,sides.south},
+    ["ba_ins2"] = {redin3,sides.west},
 
     ["ab_ko"]={redout1,sides.north},
     ["ab_m"]={redout1,sides.east},
@@ -66,6 +73,15 @@ local function disabledevice(Name)
     end
 end
 
+local function readdevice(Name)
+    local d,s=getRawFromName(Name)
+    if(d~=nil and s~=nil) then
+        return d.getInput(s)
+    else
+        error("failed to read device input")
+    end
+end
+
 local evl=Queue.new()
 
 local function train_delegator(Name,callback_func)
@@ -79,15 +95,38 @@ local function train_delegator(Name,callback_func)
     evl:push(ret)
 end
 
+local ab_available_1=true
+local ab_available_2=true
+local ab_timerid_1,ab_time_1
+local ab_timerid_2,ab_time_2
+
+local ebus=Queue.new()
+
 local function doInit()
     train_delegator("ab_st",
         function(from,to)
             if(from<to) then
-                print("enable")
-                enabledevice("ab_ko")
+                ebus:push("ab_new_train")
             else 
-                print("disable")
-                disabledevice("ab_ko")
+                ebus:push("ab_train_in")
+            end
+        end
+    )
+    train_delegator("ab_ins1",
+        function(from,to)
+            if(from<to) then
+                ebus:push("ab_ins1_ready")
+            else
+                ebus:push("ab_ins1_leave")
+            end
+        end
+    )
+    train_delegator("ab_ins2",
+        function(from,to)
+            if(from<to) then
+                ebus:push("ab_ins2_ready")
+            else
+                ebus:push("ab_ins2_leave")
             end
         end
     )
@@ -102,7 +141,54 @@ end
 local function TCSMain()
     doInit()
     print("TCS Started. Press Ctrl+C to stop.")
-    WaitEvent("interrupted")
+    -- Main Processing Loop
+    while(true) do
+        local ev="no_event"
+        if(ebus:top()~=nil) then
+            ev=ebus:pop() -- Notice: Event is already poped.
+        end
+
+        if(ev=="no_event") then
+            os.sleep(0.5) -- No event, delay for more info
+        elseif(ev=="ab_new_train") then
+            local act=false
+            if(readdevice("ab_sr")>0) then -- This train will coming into station
+                if(ab_available_1) then 
+                    ab_available_1=false
+                    act=true
+                    ab_time_1=0
+                    ab_timerid_1=AddTimer(1,
+                        function()
+                            ab_time_1=ab_time_1+1
+                        end,
+                        -1)
+                end
+            else -- This train will pass by station
+                if(ab_available_2) then 
+                    ab_available_2=false
+                    act=true
+                    ab_time_2=0
+                    ab_timerid_2=AddTimer(1,
+                        function()
+                            ab_time_2=ab_time_2+1
+                        end,
+                        -1)
+                end
+            end
+
+            if(act) then
+                enabledevice("ab_ko")
+                os.sleep(0.25)
+                disabledevice("ab_ko")
+            else -- Push Event back
+                ebus:push(ev)
+            end
+        else -- Ignore unknown event
+            -- Do nothing
+        end
+
+    end
+
     doCleanUp()
 end
 
