@@ -78,6 +78,7 @@ local function readdevice(Name)
     if(d~=nil and s~=nil) then
         return d.getInput(s)
     else
+        -- Critical error
         error("failed to read device input")
     end
 end
@@ -91,7 +92,6 @@ local function train_delegator(Name,callback_func)
                 callback_func(from,to)
             end
         end)
-    print("Delegator: ",ret)
     evl:push(ret)
 end
 
@@ -99,10 +99,15 @@ local ab_available_1=true
 local ab_available_2=true
 local ab_timerid_1,ab_time_1
 local ab_timerid_2,ab_time_2
+local ab_timerid_out,ab_time_out
 
 local ebus=Queue.new()
 
 local function doInit()
+    evl:push(AddEventListener("interrupted",
+        function()
+            ebus:push("stop")
+        end))
     train_delegator("ab_st",
         function(from,to)
             if(from<to) then
@@ -142,15 +147,23 @@ local function TCSMain()
     doInit()
     print("TCS Started. Press Ctrl+C to stop.")
     -- Main Processing Loop
-    while(true) do
+    local running=true
+    while(running) do
         local ev="no_event"
         if(ebus:top()~=nil) then
             ev=ebus:pop() -- Notice: Event is already poped.
         end
+        
+        -- For Debug: Print Event Name
+        if(ev~="no_event") then
+            print(ev)
+        end
 
         if(ev=="no_event") then
             os.sleep(0.5) -- No event, delay for more info
-        elseif(ev=="ab_new_train") then
+        elseif(ev=="stop") then
+            running=false
+        elseif(ev=="ab_new_train") then -- AB New Train
             local act=false
             if(readdevice("ab_sr")>0) then -- This train will coming into station
                 if(ab_available_1) then 
@@ -162,6 +175,8 @@ local function TCSMain()
                             ab_time_1=ab_time_1+1
                         end,
                         -1)
+                    disabledevice("ab_m")
+                    disabledevice("ab_k1")
                 end
             else -- This train will pass by station
                 if(ab_available_2) then 
@@ -173,6 +188,8 @@ local function TCSMain()
                             ab_time_2=ab_time_2+1
                         end,
                         -1)
+                    enabledevice("ab_m")
+                    disabledevice("ab_k2")
                 end
             end
 
@@ -181,6 +198,47 @@ local function TCSMain()
                 os.sleep(0.25)
                 disabledevice("ab_ko")
             else -- Push Event back
+                ebus:push(ev)
+            end
+        elseif(ev=="ab_ins1_ready") then
+            if(ab_time_out==0 and ab_time_1>6 and ab_time_1>ab_time_2 and readdevice("ab_lout")>0) then
+                RemoveTimer(ab_timerid_1)
+                ab_time_1=0
+                ab_available_1=true
+                
+                ab_time_out=1
+                ab_timerid_out=AddTimer(1,
+                    function()
+                        ab_time_out=ab_time_out+1
+                        if(ab_time_out==5) then
+                            ebus:push("ab_time_out_needstop")
+                        end
+                    end)
+                
+                enabledevice("ab_k1")
+            else
+                ebus:push(ev)
+            end
+        elseif(ev=="ab_time_out_needstop") then 
+            RemoveTimer(ab_timerid_out)
+            ab_time_out=0
+        elseif(ev=="ab_ins2_ready") then
+            if(ab_time_out==0 and ab_time_2>ab_time_1 and readdevice("ab_lout")>0) then
+                RemoveTimer(ab_timerid_2)
+                ab_time_2=0
+                ab_available_2=true
+                
+                ab_time_out=1
+                ab_timerid_out=AddTimer(1,
+                    function()
+                        ab_time_out=ab_time_out+1
+                        if(ab_time_out==5) then
+                            ebus:push("ab_time_out_needstop")
+                        end
+                    end)
+                
+                enabledevice("ab_k2")
+            else
                 ebus:push(ev)
             end
         else -- Ignore unknown event
