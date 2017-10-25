@@ -28,7 +28,7 @@ function proxy(componentType,beginWith)
         end
     else
         if(beginWith == nil) then
-            print("No beginWith value")
+            print("beginWith value required.")
             return nil
         end
         if(type(beginWith) ~= "string") then
@@ -36,12 +36,25 @@ function proxy(componentType,beginWith)
             return nil
         end
         local bsz=string.len(beginWith)
+        local traw
+        local cnt=0
         for k in pairs(t) do
             if(string.sub(k,1,bsz) == beginWith) then
-                return rawproxy(k)
+                if(cnt==0) then 
+                    traw=rawproxy(k)
+                    cnt=1
+                else
+                    print("Found more than 1 target.")
+                    return nil
+                end
             end
         end
-        print("Not found with beginWith value")
-        return nil
+
+        if(cnt==0) then 
+            print("Not found with beginWith value")
+            return nil
+        else
+            return traw
+        end
     end
 end
