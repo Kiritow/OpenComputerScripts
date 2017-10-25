@@ -31,11 +31,11 @@ end
 function AddTimer(Interval,CallbackFunction,Times)
     checknumber(Interval)
     checkfunction(CallbackFunction)
-    if(type(Times)~=nil) then -- Timer will run [Times] times.
-        checknumber(Times)
+    checknumber(Times) 
+    if(Times<1) then -- Timer will infinitly run (when times <0)
+        return event.timer(Interval,CallbackFunction,math.huge)
+    else -- Timer will run [Times] times.
         return event.timer(Interval,CallbackFunction,Times)
-    else -- Timer will run once.
-        return event.timer(Interval,CallbackFunction)
     end
 end
 
