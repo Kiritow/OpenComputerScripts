@@ -101,6 +101,12 @@ local ab_timerid_1,ab_time_1
 local ab_timerid_2,ab_time_2
 local ab_timerid_out,ab_time_out
 
+local ba_available_1=true
+local ba_available_2=true
+local ba_timerid_1,ba_time_1
+local ba_timerid_2,ba_time_2
+local ba_timerid_out,ba_time_out
+
 local ebus=Queue.new()
 
 local function doInit()
@@ -108,6 +114,8 @@ local function doInit()
         function()
             ebus:push("stop")
         end))
+
+    --- AB
     train_delegator("ab_st",
         function(from,to)
             if(from<to) then
@@ -132,6 +140,35 @@ local function doInit()
                 ebus:push("ab_ins2_ready")
             else
                 ebus:push("ab_ins2_leave")
+            end
+        end
+    )
+
+    --- BA
+    train_delegator("ba_st",
+        function(from,to)
+            if(from<to) then
+                ebus:push("ba_new_train")
+            else 
+                ebus:push("ba_train_in")
+            end
+        end
+    )
+    train_delegator("ba_ins1",
+        function(from,to)
+            if(from<to) then
+                ebus:push("ba_ins1_ready")
+            else
+                ebus:push("ba_ins1_leave")
+            end
+        end
+    )
+    train_delegator("ba_ins2",
+        function(from,to)
+            if(from<to) then
+                ebus:push("ba_ins2_ready")
+            else
+                ebus:push("ba_ins2_leave")
             end
         end
     )
@@ -163,6 +200,7 @@ local function TCSMain()
             os.sleep(0.5) -- No event, delay for more info
         elseif(ev=="stop") then
             running=false
+        --- AB
         elseif(ev=="ab_new_train") then -- AB New Train
             local act=false
             if(readdevice("ab_sr")>0) then -- This train will coming into station
@@ -213,15 +251,12 @@ local function TCSMain()
                         if(ab_time_out==5) then
                             ebus:push("ab_time_out_needstop")
                         end
-                    end)
+                    end,-1)
                 
                 enabledevice("ab_k1")
             else
                 ebus:push(ev)
             end
-        elseif(ev=="ab_time_out_needstop") then 
-            RemoveTimer(ab_timerid_out)
-            ab_time_out=0
         elseif(ev=="ab_ins2_ready") then
             if(ab_time_out==0 and ab_time_2>ab_time_1 and readdevice("ab_lout")>0) then
                 RemoveTimer(ab_timerid_2)
@@ -235,12 +270,91 @@ local function TCSMain()
                         if(ab_time_out==5) then
                             ebus:push("ab_time_out_needstop")
                         end
-                    end)
+                    end,-1)
                 
                 enabledevice("ab_k2")
             else
                 ebus:push(ev)
             end
+        --- BA
+        elseif(ev=="ba_new_train") then -- AB New Train
+            local act=false
+            if(readdevice("ba_sr")>0) then -- This train will coming into station
+                if(ba_available_1) then 
+                    ba_available_1=false
+                    act=true
+                    ba_time_1=0
+                    ba_timerid_1=AddTimer(1,
+                        function()
+                            ba_time_1=ba_time_1+1
+                        end,
+                        -1)
+                    disabledevice("ba_m")
+                    disabledevice("ba_k1")
+                end
+            else -- This train will pass by station
+                if(ba_available_2) then 
+                    ba_available_2=false
+                    act=true
+                    ba_time_2=0
+                    ba_timerid_2=AddTimer(1,
+                        function()
+                            ba_time_2=ba_time_2+1
+                        end,
+                        -1)
+                    enabledevice("ba_m")
+                    disabledevice("ba_k2")
+                end
+            end
+
+            if(act) then
+                enabledevice("ba_ko")
+                os.sleep(0.25)
+                disabledevice("ba_ko")
+            else -- Push Event back
+                ebus:push(ev)
+            end
+        elseif(ev=="ba_ins1_ready") then
+            if(ba_time_out==0 and ba_time_1>6 and ba_time_1>ba_time_2 and readdevice("ba_lout")>0) then
+                RemoveTimer(ba_timerid_1)
+                ba_time_1=0
+                ba_available_1=true
+                
+                ba_time_out=1
+                ba_timerid_out=AddTimer(1,
+                    function()
+                        ba_time_out=ba_time_out+1
+                        if(ba_time_out==5) then
+                            ebus:push("ba_time_out_needstop")
+                        end
+                    end,-1)
+                
+                enabledevice("ba_k1")
+            else
+                ebus:push(ev)
+            end
+        elseif(ev=="ba_ins2_ready") then
+            if(ba_time_out==0 and ba_time_2>ba_time_1 and readdevice("ba_lout")>0) then
+                RemoveTimer(ba_timerid_2)
+                ba_time_2=0
+                ba_available_2=true
+                
+                ba_time_out=1
+                ba_timerid_out=AddTimer(1,
+                    function()
+                        ba_time_out=ba_time_out+1
+                        if(ba_time_out==5) then
+                            ebus:push("ba_time_out_needstop")
+                        end
+                    end,-1)
+                
+                enabledevice("ba_k2")
+            else
+                ebus:push(ev)
+            end
+        elseif(ev=="ba_time_out_needstop") then 
+            RemoveTimer(ba_timerid_out)
+            ba_time_out=0
         else -- Ignore unknown event
             -- Do nothing
         end
