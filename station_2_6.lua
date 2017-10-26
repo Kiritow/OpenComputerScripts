@@ -764,7 +764,8 @@ local function TCSMain()
                 bus:push(ev)
             end
         else -- Unknown event
-            -- Ignore.
+            -- Debug: Output the event name
+            print("Ignoring:",ev)
         end -- End of event patch
     end -- End of loop
     doCleanUp()
