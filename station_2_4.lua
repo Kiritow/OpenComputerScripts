@@ -97,15 +97,15 @@ end
 
 local ab_available_1=true
 local ab_available_2=true
-local ab_timerid_1,ab_time_1
-local ab_timerid_2,ab_time_2
-local ab_timerid_out,ab_time_out
+local ab_timerid_1,ab_time_1=0,0
+local ab_timerid_2,ab_time_2=0,0
+local ab_timerid_out,ab_time_out=0,0
 
 local ba_available_1=true
 local ba_available_2=true
-local ba_timerid_1,ba_time_1
-local ba_timerid_2,ba_time_2
-local ba_timerid_out,ba_time_out
+local ba_timerid_1,ba_time_1=0,0
+local ba_timerid_2,ba_time_2=0,0
+local ba_timerid_out,ba_time_out=0,0
 
 local ebus=Queue.new()
 
@@ -371,6 +371,9 @@ local function TCSMain()
             else
                 ebus:push(ev)
             end
+        elseif(ev=="ab_time_out_needstop") then
+            RemoveTimer(ab_timerid_out)
+            ab_time_out=0
         elseif(ev=="ba_time_out_needstop") then 
             RemoveTimer(ba_timerid_out)
             ba_time_out=0
@@ -379,7 +382,7 @@ local function TCSMain()
         end
 
     end
-    
+
     doCleanUp()
     doClearOutput()
 end
