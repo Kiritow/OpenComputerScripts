@@ -53,7 +53,7 @@ local code_lst=
     "SignReader",
     "checkarg",
     "class",
-    -- "downloader"
+    -- "downloader",
     "libevent",
     "libnetwork",
     -- "mcssh",

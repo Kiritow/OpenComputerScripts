@@ -9,14 +9,14 @@ require("queue")
 local sides=require("sides")
 
 -- Config your update functions here (Do not change variable name)
-local redin1 = proxy("redstone", "")
-local redin2 = proxy("redstone", "")
-local redin3 = proxy("redstone", "")
-local redin4 = proxy("redstone", "")
-local redout1 = proxy("redstone", "")
-local redout2 = proxy("redstone", "")
-local redout3 = proxy("redstone", "")
-local redout4 = proxy("redstone", "")
+local redin1 = proxy("redstone", "a0")
+local redin2 = proxy("redstone", "4d")
+local redin3 = proxy("redstone", "3f")
+local redin4 = proxy("redstone", "b7")
+local redout1 = proxy("redstone", "bd")
+local redout2 = proxy("redstone", "0a")
+local redout3 = proxy("redstone", "90")
+local redout4 = proxy("redstone", "53")
 
 -- Redirect Table
 local redirect_tb=
@@ -216,8 +216,8 @@ local function TCSMain()
         os.sleep(0.25) -- Shorter sleep, faster program.
         
         local ev="no_event"
-        if(ebus:top()~=nil) then
-            ev=ebus:pop() -- Notice: Event is already poped.
+        if(bus:top()~=nil) then
+            ev=bus:pop() -- Notice: Event is already poped.
         end
         
         -- For Debug: Print Event Name
@@ -662,7 +662,7 @@ local function TCSMain()
                 end -- If way6 is not free, we cannot reverse to it. (bang!)
             else -- Does not need reverse
                 if(ba_time_out==0 and readdevice("ba_lout")>0) then -- Can let go
-                    if(isfree[4] or timecnt[4]==0 or timecnt[5]>timecnt[4]) then -- If Way4 is free, or way4 is not ready, or way5 wait longer
+                    if(isfree[4] or timecnt[4]==0 or timecnt[5]>=timecnt[4]) then -- If Way4 is free, or way4 is not ready, or way5 wait longer
                         ba_time_out=1
                         ba_timerid_out=AddTimer(1,
                             function()
@@ -763,6 +763,9 @@ local function TCSMain()
             else
                 bus:push(ev)
             end
+        elseif(ev=="ba_time_out_needstop") then
+            RemoveTimer(ba_timerid_out)
+            ba_time_out=0
         else -- Unknown event
             -- Debug: Output the event name
             print("Ignoring:",ev)
