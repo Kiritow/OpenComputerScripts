@@ -205,6 +205,8 @@ local function TCSMain()
     -- Main Processing Loop
     local running=true
     while(running) do
+        os.sleep(0.5)
+        
         local ev="no_event"
         if(ebus:top()~=nil) then
             ev=ebus:pop() -- Notice: Event is already poped.
@@ -216,7 +218,7 @@ local function TCSMain()
         end
 
         if(ev=="no_event") then
-            os.sleep(0.5) -- No event, delay for more info
+            -- No event, no action.
         elseif(ev=="stop") then
             running=false
         --- AB
