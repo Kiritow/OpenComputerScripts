@@ -109,6 +109,12 @@ local ba_timerid_out,ba_time_out
 
 local ebus=Queue.new()
 
+local function doCheck()
+    if(redin1==nil or redin2==nil or redin3==nil or redout1==nil or redout2==nil) then
+        error("Check Failed. Please review your redstone configure")
+    end
+end
+
 local function doInit()
     evl:push(AddEventListener("interrupted",
         function()
@@ -180,7 +186,20 @@ local function doCleanUp()
     end
 end
 
+local function doClearOutput()
+    disabledevice("ab_ko")
+    disabledevice("ab_m")
+    disabledevice("ab_k1")
+    disabledevice("ab_k2")
+    disabledevice("ba_ko")
+    disabledevice("ba_m")
+    disabledevice("ba_k1")
+    disabledevice("ba_k2")
+end
+
 local function TCSMain()
+    doCheck()
+    doClearOutput()
     doInit()
     print("TCS Started. Press Ctrl+C to stop.")
     -- Main Processing Loop
@@ -360,8 +379,9 @@ local function TCSMain()
         end
 
     end
-
+    
     doCleanUp()
+    doClearOutput()
 end
 
 -- Start-up script
