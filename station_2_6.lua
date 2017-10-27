@@ -525,7 +525,7 @@ local function TCSMain()
         elseif (ev == "s5_ready") then -- Train must stay at way5 whether it wants to stop or not.
             addNormalStationTimer(5) --> s5_timeout
         elseif (ev == "s6_ready") then
-            addNormalStationTimer(5) --> s6_timeout
+            addNormalStationTimer(6) --> s6_timeout
         elseif (ev == "s1_timeout") then
             proc1236(1, ev)
         elseif (ev == "s2_timeout") then
