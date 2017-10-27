@@ -203,6 +203,17 @@ local function doCheck()
     print("Check Pass.")
 end
 
+local function startBATimer()
+    ba_time_out=1
+    ba_timerid_out=AddTimer(1,
+        function()
+            ba_time_out=ba_time_out+1
+            if(ba_time_out==8) then
+                bus:push("ba_time_out_needstop")
+            end
+        end,-1)
+end
+
 local function TCSMain()
     doCheck()
     doClearOutput()
@@ -448,14 +459,7 @@ local function TCSMain()
 
             if(act) then
                 -- Add BA Timer
-                ba_time_out=1
-                ba_timerid_out=AddTimer(1,
-                    function()
-                        ba_time_out=ba_time_out+1
-                        if(ba_time_out==8) then
-                            bus:push("ba_time_out_needstop")
-                        end
-                    end,-1)
+                startBATimer()
                 enabledevice("k4")
                 os.sleep(0.25)
                 disabledevice("k4")
@@ -535,6 +539,8 @@ local function TCSMain()
             end
 
             if(done) then -- Clear way1
+                RemoveTimer(timerid[1])
+                timecnt[1]=0
                 isfree[1]=true
             else
                 bus:push(ev)
@@ -588,6 +594,8 @@ local function TCSMain()
             end
 
             if(done) then -- Clear way2
+                RemoveTimer(timerid[2])
+                timecnt[2]=0
                 isfree[2]=true
             else
                 bus:push(ev)
@@ -641,6 +649,8 @@ local function TCSMain()
             end
 
             if(done) then -- Clear way6
+                RemoveTimer(timerid[6])
+                timecnt[6]=0
                 isfree[6]=true
             else
                 bus:push(ev)
@@ -663,15 +673,7 @@ local function TCSMain()
             else -- Does not need reverse
                 if(ba_time_out==0 and readdevice("ba_lout")>0) then -- Can let go
                     if(isfree[4] or timecnt[4]==0 or timecnt[5]>=timecnt[4]) then -- If Way4 is free, or way4 is not ready, or way5 wait longer
-                        ba_time_out=1
-                        ba_timerid_out=AddTimer(1,
-                            function()
-                                ba_time_out=ba_time_out+1
-                                if(ba_time_out==8) then
-                                    bus:push("ba_time_out_needstop")
-                                end
-                            end,
-                        -1)
+                        startBATimer()
                         disabledevice("m5")
                         enabledevice("k5")
                         os.sleep(0.25)
@@ -682,6 +684,8 @@ local function TCSMain()
                 end -- Cannot move at all.
             end
             if(done) then
+                RemoveTimer(timerid[5])
+                timecnt[5]=0
                 isfree[5]=true -- Mark way5 as free
             else
                 bus:push(ev)
@@ -735,30 +739,27 @@ local function TCSMain()
             end
             if(done) then -- mark way 3 as free
                 isfree[3]=true
+                RemoveTimer(timerid[3])
+                timecnt[3]=0
             else 
                 bus:push(ev)
             end
         elseif(ev=="s4_pending") then 
             local okay=false
             if(ba_time_out==0 and readdevice("ba_lout")>0) then -- Can let go
-                if(isfree[5] or revflag[5]==true) then -- Way5 is free or Way5 will reverse
+                if(isfree[5] or revflag[5]==true or timecnt[4]>=timecnt[5]) then -- Way5 is free or Way5 will reverse
                     okay=true
                 end
             end
 
             if(okay) then
                 -- Add BA Timer
-                ba_time_out=1
-                ba_timerid_out=AddTimer(1,
-                    function()
-                        ba_time_out=ba_time_out+1
-                        if(ba_time_out==8) then
-                            bus:push("ba_time_out_needstop")
-                        end
-                    end,-1)
+                startBATimer()
                 enabledevice("k4")
                 os.sleep(0.25)
                 disabledevice("k4")
+                RemoveTimer(timerid[4])
+                timecnt[4]=0
                 isfree[4]=true
             else
                 bus:push(ev)
