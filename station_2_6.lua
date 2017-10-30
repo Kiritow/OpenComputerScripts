@@ -315,7 +315,7 @@ local function proc1236(n, ev)
     local done = false
     if (isSideLineFree()) then -- Side line must be free(or we can't move at all)
         if (timecnt[n] >= timecnt[1] and timecnt[n] >= timecnt[2] and timecnt[n] >= timecnt[3] and timecnt[n] >= timecnt[6]) then
-            if (revflag[1]) then -- Way n need reverse
+            if (revflag[n]) then -- Way n need reverse
                 if (isfree[4]) then -- Way n --> Way 4
                     isfree[4] = false
                     revflag[4] = false
