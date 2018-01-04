@@ -166,8 +166,18 @@ function WaitEvent(...)
     elseif(type(tb[1])=="number") then -- WaitEvent(1),event.pull(1)
         return doEventTranslate(table.pack(event.pull(tb[1])))
     else
-        error("syntax error. Usage: WaitEvent([EventName],[TimeOutSecond])")
+        error("Syntax error. Usage: WaitEvent([EventName],[TimeOutSecond])")
     end
+end
+
+function WaitMultipleEvent(...)
+    local tb=table.pack(...)
+    for i=1,tb.n,1 do 
+        if(type(tb[i])~="string") then 
+            error("Syntax error. Usage: WaitMultipleEvent(EventName1,[EventName2]...)")
+        end
+    end
+    return doEventTranslate(table.pack(event.pullMultiple(...)))
 end
 
 function PushEvent(EventName,...)
