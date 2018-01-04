@@ -150,19 +150,22 @@ function RemoveEventListener(ListenerID)
     return event.ignore(event.handlers[ListenerID].key,event.handlers[ListenerID].callback)
 end
 
-function WaitEvent(EventName)
-    if(EventName~=nil) then 
-        checkstring(EventName)
-        return doEventTranslate(table.pack(event.pull(EventName)))
-    else
+function WaitEvent(...)
+    local tb=table.pack(...)
+    if(tb.n==0) then -- WaitEvent(),event.pull()
         return doEventTranslate(table.pack(event.pull()))
+    elseif(type(tb[1])=="string") then
+        if(type(tb[2])==nil) then -- WaitEvent("key_up"),event.pull("key_up")
+            return doEventTranslate(table.pack(event.pull(tb[1])))
+        else  -- WaitEvent("key_up",1),event.pull(1,"key_up")
+            checknumber(tb[2])
+            return doEventTranslate(table.pack(event.pull(tb[2],tb[1])))
+        end
+    elseif(type(tb[1])=="number") then -- WaitEvent(1),event.pull(1)
+        return doEventTranslate(table.pack(event.pull(tb[1])))
+    else
+        error("syntax error. Usage: WaitEvent([EventName],[TimeOutSecond])")
     end
-end
-
-function WaitEventFor(EventName,TimeOut)
-    checkstring(EventName)
-    checknumber(TimeOut)
-    return doEventTranslate(table.pack(event.pull(TimeOut,EventName)))
 end
 
 function PushEvent(EventName,...)
