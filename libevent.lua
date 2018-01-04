@@ -99,7 +99,7 @@ local function doEventTranslate(raw_event)
         t["targetAddress"]=c
         t["data"]=d
         t["metadata"]=e
-    elseif(name=="minecraft") then
+    elseif(name=="minecart") then
         t["detectorAddress"]=a
         t["minecartType"]=b
         t["minecartName"]=c
@@ -151,8 +151,12 @@ function RemoveEventListener(ListenerID)
 end
 
 function WaitEvent(EventName)
-    checkstring(EventName)
-    return doEventTranslate(table.pack(event.pull(EventName)))
+    if(EventName~=nil) then 
+        checkstring(EventName)
+        return doEventTranslate(table.pack(event.pull(EventName)))
+    else
+        return doEventTranslate(table.pack(event.pull()))
+    end
 end
 
 function WaitEventFor(EventName,TimeOut)
