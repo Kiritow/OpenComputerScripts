@@ -2,12 +2,10 @@
 local component=require("component")
 
 function DownloadFromGitHub(RepoName,Branch,FileAddress)
-    local hwtable=component.list()
+    local hwtable=component.list("internet")
     local found=false
     for k,v in pairs(hwtable) do
-        if(v=="internet") then
-            found=true
-        end
+        found=true
     end
     if(not found) then
         error("The downloader requires an Internet card.")
