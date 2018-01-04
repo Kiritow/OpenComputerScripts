@@ -1,4 +1,5 @@
 local component=require("component")
+local sides=require("sides")
 require("libevent")
 require("util")
 
@@ -18,6 +19,10 @@ local route_ab_load = proxy("routing_switch","0c")
 local route_ba_load = proxy("routing_switch","088")
 local route_ab_unload = proxy("routing_switch","08c")
 local route_ba_unload = proxy("routing_switch","c")
+
+--- Internal Variables
+local load_box_side
+local unload_box_side
 
 
 -- Value: 1 Green 2 Blinking Yello 3 Yello 4 Blinking Red 5 Red
@@ -94,12 +99,48 @@ local function checkDevice()
 
     checkRoutingTicket(out_ticket)
 
+    local function checkChest(device)
+        if(device.getInventorySize(sides.down)==nil) then 
+            error("CheckChest: Failed to check chest. Cache Chest must exists.")
+        end
+
+        for i=1,device.getInventorySize(sides.down),1 do
+            if(device.getStackInSlot(sides.down,i)~=nil) then
+                error("CheckChest: Failed to check chest. Cache Chest not empty.")
+            end
+        end
+
+        local tsd
+
+        local dr={sides.north,sides.south,sides.east,sides.west}
+        for k,v in pairs(dr) do 
+            if(device.getInventorySize(v)~=nil) then
+                tsd=v
+            end
+        end
+
+        if(tsd==nil) then
+            error("CheckChest: Failed to check chest. Normal Chest must exists.")
+        end
+
+        for i=1,device.getInventorySize(tsd),1 do
+            if(device.getStackInSlot(tsd,i)~=nil) then
+                error("CheckChest: Failed to check chest. Normal Chest not empty.")
+            end
+        end
+
+        return tsd
+    end
+
+    load_box_side=checkChest(load_transposer)
+    unload_box_side=checkChest(unload_transposer)
+
     print("Check device pass.")
 end
 
 local function resetDevice()
     print("Reseting Devices...")
-    
+
     digital_controller.setEveryAspect(red)
     
     route_ab_load.setRoutingTable({})
