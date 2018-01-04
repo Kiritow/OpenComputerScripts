@@ -151,6 +151,31 @@ local function resetDevice()
     print("Device reset done.")
 end
 
+
+local function lockLoadChest()
+    setSignal("LoadBoxCtrl",green)
+end
+
+local function unlockLoadChest()
+    setSignal("LoadBoxCtrl",red)
+end
+
+
+local function startLoad()
+    lockLoadChest()
+    local sz=load_transposer.getInventorySize(load_box_side)
+    local cnt=1
+    for i=1,sz,1 do 
+        if(load_transposer.getStackInSlot(load_box_side,i)~=nil) then 
+            load_transposer.transferItem(load_box_side,sides.down)
+            cnt=cnt+1
+        end
+    end
+
+    print("startLoad " .. cnt-1 .. " item transferred.")
+    unlockLoadChest()
+end
+
 local function main()
     checkDevice()
     resetDevice()
