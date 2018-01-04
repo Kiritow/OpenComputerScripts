@@ -99,6 +99,8 @@ local function doEventTranslate(raw_event)
         t["targetAddress"]=c
         t["data"]=d
         t["metadata"]=e
+    elseif(name=="interrupted") then
+        t["uptime"]=a
     elseif(name=="minecart") then
         t["detectorAddress"]=a
         t["minecartType"]=b
