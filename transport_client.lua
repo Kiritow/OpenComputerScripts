@@ -7,6 +7,7 @@ require("util")
 local digital_controller = proxy("digital_controller_box")
 local digital_receiver = proxy("digital_receiver_box")
 local out_ticket = proxy("routing_track")
+local network_card = proxy("modem")
 
 --- Manually Configure
 local load_detector = proxy("digital_detector","0")
@@ -23,6 +24,8 @@ local route_ba_unload = proxy("routing_switch","c")
 --- Internal Variables
 local load_box_side
 local unload_box_side
+local loading=0 -- 0 Free 1 Ready 2 Processing
+local unloading=0
 
 
 -- Value: 1 Green 2 Blinking Yello 3 Yello 4 Blinking Red 5 Red
@@ -48,6 +51,7 @@ local function checkDevice()
     doCheckDevice(digital_controller)
     doCheckDevice(digital_receiver)
     doCheckDevice(out_ticket)
+    doCheckDevice(network_card)
     
     doCheckDevice(load_detector)
     doCheckDevice(unload_detector)
@@ -75,6 +79,7 @@ local function checkDevice()
     checkSigName("UnloadCartCtrl")
     checkSigName("UnloadBoxCtrl")
     checkSigName("OutCtrl")
+    checkSigName("OutSwitchCtrl")
 
     t=digital_receiver.getSignalNames()
     checkSigName("LoadCartSig")
@@ -162,7 +167,12 @@ end
 
 
 local function startLoad()
+    if(loading>0) then
+        return false,"Loading status not free"
+    end
+
     lockLoadChest()
+
     local sz=load_transposer.getInventorySize(load_box_side)
     local cnt=1
     for i=1,sz,1 do 
@@ -172,7 +182,7 @@ local function startLoad()
         end
     end
 
-    print("startLoad " .. cnt-1 .. " item transferred.")
+    print("startLoad: " .. cnt-1 .. " item transferred.")
     unlockLoadChest()
 end
 

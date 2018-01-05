@@ -157,7 +157,7 @@ function WaitEvent(...)
     if(tb.n==0) then -- WaitEvent(),event.pull()
         return doEventTranslate(table.pack(event.pull()))
     elseif(type(tb[1])=="string") then
-        if(type(tb[2])==nil) then -- WaitEvent("key_up"),event.pull("key_up")
+        if(tb[2]==nil) then -- WaitEvent("key_up"),event.pull("key_up")
             return doEventTranslate(table.pack(event.pull(tb[1])))
         else  -- WaitEvent("key_up",1),event.pull(1,"key_up")
             checknumber(tb[2])
