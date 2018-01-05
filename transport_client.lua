@@ -1,5 +1,6 @@
 local component=require("component")
 local sides=require("sides")
+local thread=require("thread")
 require("libevent")
 require("util")
 
@@ -26,12 +27,13 @@ local load_box_side
 local unload_box_side
 local loading=0 -- 0 Free 1 Ready 2 Processing
 local unloading=0
+local lockway=0 -- 0 Free 1 Loading 2 Unloading
 
 
--- Value: 1 Green 2 Blinking Yello 3 Yello 4 Blinking Red 5 Red
+-- Value: 1 Green 2 Blinking Yellow 3 Yellow 4 Blinking Red 5 Red
 local green=1
-local byello=2
-local yello=3
+local byellow=2
+local yellow=3
 local bred=4
 local red=5
 
@@ -76,14 +78,23 @@ local function checkDevice()
     checkSigName("BInCtrl")
     checkSigName("LoadCartCtrl")
     checkSigName("LoadBoxCtrl")
+    checkSigName("LoadLamp")
     checkSigName("UnloadCartCtrl")
     checkSigName("UnloadBoxCtrl")
+    checkSigName("UnloadLamp")
     checkSigName("OutCtrl")
     checkSigName("OutSwitchCtrl")
 
     t=digital_receiver.getSignalNames()
-    checkSigName("LoadCartSig")
-    checkSigName("UnloadCartSig")
+    local function checkSigNameX(name)
+        checkSigName(name)
+        if(digital_receiver.getAspect(name)~=red) then
+            error("CheckSigNameX: Failed to check cart signals. Value must be red while initializing.")
+        end
+    end
+
+    checkSigNameX("LoadCartSig")
+    checkSigNameX("UnloadCartSig")
 
     local function checkRoutingTable(device)
         if(device.getRoutingTableTitle()==false) then 
@@ -147,6 +158,8 @@ local function resetDevice()
     print("Reseting Devices...")
 
     digital_controller.setEveryAspect(red)
+    setSignal("UnloadBoxCtrl",green) --- Lock unload box.
+    setSignal("LoadLamp",green)
     
     route_ab_load.setRoutingTable({})
     route_ba_load.setRoutingTable({})
@@ -156,6 +169,13 @@ local function resetDevice()
     print("Device reset done.")
 end
 
+local function setLoadLamp(sigcolor)
+    setSignal("LoadLamp",sigcolor)
+end
+
+local function setUnloadLamp(sigcolor)
+    setSignal("UnloadLamp",sigcolor)
+end
 
 local function lockLoadChest()
     setSignal("LoadBoxCtrl",green)
@@ -165,6 +185,127 @@ local function unlockLoadChest()
     setSignal("LoadBoxCtrl",red)
 end
 
+local function lockUnloadChest()
+    setSignal("UnloadBoxCtrl",green)
+end
+
+local function unlockUnloadChest()
+    setSignal("UnloadBoxCtrl",red)
+end
+
+
+local function getNewTransID(cnt)
+    print("Getting new transfer id...")
+    network_card.open(10011)
+    network_card.broadcast(10010,"TSCM","req","store",cnt)
+    e=WaitEvent("modem_message",10)
+    local ret
+    if(e~=nil and e.data[1]=="TSCM" and e.data[2]=="ack" and e.data[3]=="pass") then
+        ret=e.data[4]
+    else
+        ret=nil
+    end
+    network_card.close(10011)
+    return ret
+end
+
+local function SetTicket(Dest)
+    routing_track.setDestination(Dest)
+end
+
+local function doLoadWork(item_cnt)
+    print("LoadWork: Ready.")
+    local id=getNewTransID(item_cnt)
+    if(id==nil) then 
+        print("LoadWork: Failed to get new transID.")
+        print("LoadWork: item rollback started.")
+
+        setLoadLamp(byellow)
+        local sz=load_transposer.getInventorySize(sides.down)
+        local cnt=1
+        for i=1,sz,1 do 
+            if(load_transposer.getStackInSlot(sides.down,i)~=nil) then 
+                load_transposer.transferItem(sides.down,load_box_side)
+                cnt=cnt+1
+            end
+        end
+
+        print("LoadWork: item rollback finished.")
+        loading=0
+        setLoadLamp(green)
+        unlockLoadChest()
+    else
+        id=math.ceil(id)
+        print("LoadWork: Transfer id got.")
+        print("LoadWork: Setting routing table...")
+        local trainid="TC_" .. tostring(id)
+        local routestr="Dest=" .. trainid
+        print("LoadWork: ",routestr)
+        local routetb={[1]=routestr}
+        route_ab_load.setRoutingTable(routetb)
+        route_ba_load.setRoutingTable(routetb)
+
+        local backtrainid="TR_" .. tostring(id)
+
+        print("LoadWork: Routing table set.")
+
+        local bus=CreateEventBus()
+        EventBusListen(bus,"minecart")
+
+        local function trigger()
+            setSignal("LoadCartCtrl",green)
+            os.sleep(0.5)
+            setSignal("LoadCartCtrl",red)
+        end
+
+        local function lockOutWay()
+            while(lockway~=0) do 
+                os.sleep(1)
+            end
+            lockway=1
+        end
+
+        local function unlockOutWay()
+            lockway=0
+        end
+
+        while true do
+            local e=GetNextEvent(bus)
+            if(e.event=="minecart") then
+                print("LoadWork: Minecart arrived. Start Loading...")
+                if(e.minecartType=="locomotive_creative") then 
+                    print("LoadWork: Skipping locomotive.")
+                    print("LoadWork: Try locking outway...")
+                    lockOutWay()
+                    print("LoadWork: Outway locked.")
+                    SetTicket(backtrainid)
+                    setLoadLamp(red)
+                elseif(e.minecartType=="cart_chest") then
+                    print("LoadWork: Filling chest cart...")
+                    while(digital_receiver.getAspect("LoadCartSig")==red) do
+                        os.sleep(1)
+                    end
+                    print("LoadWork: Chest cart filled.")
+                    trigger()
+                elseif(e.minecartType=="cart_worldspike_admin") then
+                    print("LoadWork: Found world spike. Finish.")
+                    trigger()
+                    unlockOutWay()
+                    break
+                else
+                    print("LoadWork: Skipping unknown cart_type: " .. e.minecartType)
+                    trigger()
+                end
+            end
+        end
+
+        DestroyEventBus(bus)
+
+        --- Clean Up
+        setLoadLamp(green)
+        unlockLoadChest()
+    end
+end
 
 local function startLoad()
     if(loading>0) then
@@ -182,13 +323,49 @@ local function startLoad()
         end
     end
 
-    print("startLoad: " .. cnt-1 .. " item transferred.")
-    unlockLoadChest()
+    print("startLoad: " .. cnt-1 .. " item transferred to internal chest")
+    loading=1
+    thread.create(doLoadWork,cnt);
+
+    setLoadLamp(yellow)
+    print("Info: You items have been submitted.")
+end
+
+local function storeMain()
+    setLoadLamp(byellow)
+    print("Please put your items to inbox.")
+    print("Once you finished it, press enter")
+    io.read()
+    print("Start loading...")
+    startLoad()
 end
 
 local function main()
     checkDevice()
     resetDevice()
+
+    while true do
+        print(
+            "-------------\n" ..
+            "Action List\n" ..
+            "1 Store items\n" ..
+            "2 Get items\n" ..
+            "3 Exit\n" ..
+            "-------------"
+        )
+        local id=io.read("*num")
+        io.read()
+        if(id==1) then 
+            storeMain()
+        elseif(id==2) then 
+            getMain()
+        elseif(id==3) then
+            break
+        end
+    end
+
+    resetDevice()
+    unlockUnloadChest()
 end
 
 print("Transport System Client Started.")
