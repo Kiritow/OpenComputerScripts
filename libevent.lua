@@ -117,6 +117,16 @@ local function doEventTranslate(raw_event)
     -- libevent events
     elseif(name=="EventBus_NewEvent") then
         t["id"]=a
+    -- libnetbox events
+    elseif(name=="net_message") then
+        t["receiverAddress"]=a
+        t["senderAddress"]=b
+        t["port"]=c
+        local dtb={}
+        for i=5,raw_event.n,1 do 
+            table.insert(dtb,raw_event[i])
+        end
+        t["data"]=dtb
     -- Unknown Event
     else
         if(canEventTranslate(name)) then -- Try Translate
