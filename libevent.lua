@@ -114,9 +114,6 @@ local function doEventTranslate(raw_event)
         t["address"]=a
         t["signalName"]=b
         t["signalValue"]=c
-    -- libevent events
-    elseif(name=="EventBus_NewEvent") then
-        t["id"]=a
     -- libnetbox events
     elseif(name=="net_message") then
         t["receiverAddress"]=a
@@ -218,15 +215,6 @@ end
 
 --- EventBus: Queued event bus.
 --- Notice that event bus can only handle event packages.
-function CreateEventBus()
-    return 
-    {
-        listeners={},
-        events={},
-        id=uuid.next()
-    }
-end
-
 function EventBusListen(t,event_name)
     checktable(t)
     checkstring(event_name)
@@ -234,7 +222,6 @@ function EventBusListen(t,event_name)
         AddEventListener(event_name,
             function(epack)
                 table.insert(t.events,epack)
-                event.push("EventBus_NewEvent",t.id)
             end
         )
     )
@@ -252,24 +239,24 @@ function GetNextEvent(t,wait_second)
         return e
     elseif(wait_second~=nil) then
         if(wait_second<0) then
-            while true do 
-                local ev=WaitEvent("EventBus_NewEvent")
-                if(ev.id==t.id) then 
-                    break
-                end
+            while t.events[1]==nil do
+                os.sleep(1)
             end
         else
-            local ev=WaitEvent("EventBus_NewEvent",wait_second)
-            if(ev==nil) then 
-                return nil 
-            elseif(ev.id~=t.id) then
-                return nil
+            local wait_second_left=wait_second
+            while t.events[1]==nil and wait_second_left>0 do 
+                os.sleep(1)
+                wait_second_left=wait_second_left-1
             end
         end
 
-        local e=t.events[1]
-        table.remove(t.events,1)
-        return e
+        if(t.events[1]~=nil) then 
+            local e=t.events[1]
+            table.remove(t.events,1)
+            return e
+        else
+            return nil
+        end
     else
         return nil
     end
@@ -281,3 +268,14 @@ function DestroyEventBus(t)
     end
 end
 
+function CreateEventBus()
+    return 
+    {
+        listeners={},
+        events={},
+        -- Enable using t:listen(...)
+        listen=EventBusListen,
+        next=GetNextEvent,
+        reset=DestroyEventBus
+    }
+end
