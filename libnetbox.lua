@@ -13,6 +13,8 @@ local is_router=false
 
 -- APIs
 
+local internal_port={}
+
 function SendData(target_address,port,...)
     if(not is_router) then
         modem.broadcast(netbox_router_port,"NetBox","Direct",target_address,port,...)
@@ -22,6 +24,25 @@ end
 function BroadcastData(port,...)
     if(not is_router) then
         modem.broadcast(netbox_router_port,"NetBox","Broadcast",port,...)
+    end
+end
+
+function OpenPort(port)
+    checknumber(port)
+    if(internal_port[port]~=nil) then
+        return false,"Port has been opened."
+    else
+        internal_port[port]=true
+    end
+end
+
+function ClosePort(port)
+    checknumber(port)
+    if(internal_port[port]~=nil) then
+        internal_port[port]=nil
+        return true
+    else
+        return false,"Port has been closed."
     end
 end
 
@@ -35,20 +56,16 @@ function routerMain()
         if(e.receiverAddress==tunnel.address) then
             if(e.data[1]=="NetBoxAir") then
                 if(e.data[2]=="Direct") then
-                    print("Debug: Sending from " .. e.data[3] .. " to " .. e.data[4] .. " at port " .. netbox_client_port)
                     modem.send(e.data[4],netbox_client_port,"NetBox",e.data[3],table.unpack(e.data,5))
                 elseif(e.data[2]=="Broadcast") then
-                    print("Debug: Broadcasting at port " .. netbox_client_port .. " from " .. e.data[3])
                     modem.broadcast(netbox_client_port,"NetBox",e.data[3],table.unpack(e.data,4))
                 end
             end
         elseif(e.receiverAddress==modem.address) then
             if(e.port==netbox_router_port and e.data[1]=="NetBox") then
                 if(e.data[2]=="Direct") then
-                    print("Debug: Tunnel Sending from " .. e.senderAddress .. " to " .. e.data[3])
                     tunnel.send("NetBoxAir","Direct",e.senderAddress,e.data[3],table.unpack(e.data,4))
                 elseif(e.data[2]=="Broadcast") then
-                    print("Debug: Tunnel Broadcast from " .. e.senderAddress .. " at port " .. e.port)
                     tunnel.send("NetBoxAir","Broadcast",e.senderAddress,e.data[3],table.unpack(e.data,4))
                 end
             end
@@ -57,10 +74,14 @@ function routerMain()
 end
 
 function clientServiceStart(redirect)
-    modem.open(netbox_client_port)
+    if(modem.open(netbox_client_port)==false) then
+        error("Failed to start client service. Real modem port can not be opened.")
+    end
+
     AddEventListener("modem_message",function(ev)
-        if(ev.data[1]=="NetBox") then
+        if(ev.data[1]=="NetBox" and internal_port[ev.data[3]]~=nil ) then
             event.push("net_message",ev.receiverAddress,ev.data[2],ev.data[3],table.unpack(ev.data,4))
         end
     end)
 end
+
