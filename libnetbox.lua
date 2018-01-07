@@ -47,12 +47,22 @@ function ClosePort(port)
 end
 
 function routerMain()
-    modem.open(netbox_router_port)
+    if(modem.open(netbox_router_port)==false) then
+        error("Failed to open router port on real netcard.")
+    end
+
+    print("Router Started.")
 
     local bus=CreateEventBus()
-    EventBusListen(bus,"modem_message")
+    bus:listen("modem_message")
+    bus:listen("interrupted")
     while true do 
-        local e=GetNextEvent(bus,-1)
+        local e=bus:next(-1)
+
+        if(e.event=="interrupted") then
+            break
+        end
+
         if(e.receiverAddress==tunnel.address) then
             if(e.data[1]=="NetBoxAir") then
                 if(e.data[2]=="Direct") then
@@ -62,15 +72,23 @@ function routerMain()
                 end
             end
         elseif(e.receiverAddress==modem.address) then
-            if(e.port==netbox_router_port and e.data[1]=="NetBox") then
-                if(e.data[2]=="Direct") then
-                    tunnel.send("NetBoxAir","Direct",e.senderAddress,e.data[3],table.unpack(e.data,4))
-                elseif(e.data[2]=="Broadcast") then
-                    tunnel.send("NetBoxAir","Broadcast",e.senderAddress,e.data[3],table.unpack(e.data,4))
+            if(e.port==netbox_router_port) then
+                if(e.data[1]=="NetBox") then
+                    if(e.data[2]=="Direct") then
+                        tunnel.send("NetBoxAir","Direct",e.senderAddress,e.data[3],table.unpack(e.data,4))
+                    elseif(e.data[2]=="Broadcast") then
+                        tunnel.send("NetBoxAir","Broadcast",e.senderAddress,e.data[3],table.unpack(e.data,4))
+                    end
                 end
             end
         end
     end
+
+    bus:reset()
+
+    modem.close(netbox_router_port)
+
+    print("Router Stopped.")
 end
 
 function clientServiceStart(redirect)
@@ -84,4 +102,3 @@ function clientServiceStart(redirect)
         end
     end)
 end
-
