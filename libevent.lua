@@ -2,135 +2,194 @@ require("checkarg")
 local event=require("event")
 local uuid=require("uuid")
 
+-- Internal event translating function table. ex is for custom events.
 local internal_evtb={}
+local internal_evtbex={}
+local _hasInited=false
 
-local function canEventTranslate(name)
-    for k,v in pairs(internal_evtb) do 
-        if(k==name) then 
-            return true
+local function doInternalEventInit()
+    if(_hasInited) then 
+        return 
+    end
+
+    -- tb is a reference to event table.
+    local tb={}
+
+    tb["component_added"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["componentType"]=raw_event[3]
+    end
+
+    tb["component_removed"]=tb["component_added"]
+
+    tb["component_available"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["componentType"]=raw_event[2]
+    end
+
+    tb["component_unavailable"]=tb["component_available"]
+
+    tb["term_available"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+    end
+
+    tb["term_unavailable"]=tb["term_available"]
+
+    tb["screen_resized"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["screenAddress"]=raw_event[2]
+        t["newWidth"]=raw_event[3]
+        t["newHeight"]=raw_event[4]
+    end
+
+    tb["touch"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["screenAddress"]=raw_event[2]
+        t["x"]=raw_event[3]
+        t["y"]=raw_event[4]
+        t["button"]=raw_event[5]
+        t["playerName"]=raw_event[6]
+    end
+
+    tb["drag"]=tb["touch"]
+    tb["drop"]=tb["touch"]
+
+    tb["scroll"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["screenAddress"]=raw_event[2]
+        t["x"]=raw_event[3]
+        t["y"]=raw_event[4]
+        t["direction"]=raw_event[5]
+        t["playerName"]=raw_event[6]
+    end
+
+    tb["walk"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["screenAddress"]=raw_event[2]
+        t["x"]=raw_event[3]
+        t["y"]=raw_event[4]
+        t["playerName"]=raw_event[5]
+    end
+
+    tb["key_down"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["keyboardAddress"]=raw_event[2]
+        t["char"]=raw_event[3]
+        t["code"]=raw_event[4]
+        t["playerName"]=raw_event[5]
+    end
+
+    tb["key_up"]=tb["key_down"]
+
+    tb["clipboard"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["keyboardAddress"]=raw_event[2]
+        t["value"]=raw_event[3]
+        t["playerName"]=raw_event[4]
+    end
+
+    tb["redstone_changed"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["side"]=raw_event[3]
+        t["oldValue"]=raw_event[4]
+        t["newValue"]=raw_event[5]
+    end
+
+    tb["motion"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["relativeX"]=raw_event[3]
+        t["relativeY"]=raw_event[4]
+        t["relativeZ"]=raw_event[5]
+        t["entityName"]=raw_event[6]
+    end
+
+    tb["modem_message"]=function(raw_event,t) --- Special
+        t["event"]=raw_event[1]
+        t["receiverAddress"]=raw_event[2]
+        t["senderAddress"]=raw_event[3]
+        t["port"]=raw_event[4]
+        t["distance"]=raw_event[5]
+        t["data"]={}
+        for i=6,raw_event.n,1 do 
+            table.insert(t["data"],raw_event[i])
         end
-    end 
-    return false
+    end
+
+    tb["inventory_changed"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["slot"]=raw_event[2]
+    end
+
+    tb["bus_message"]=function(raw_event,t) --- Can data or metadata be table?
+        t["event"]=raw_event[1]
+        t["protocolId"]=raw_event[2]
+        t["senderAddress"]=raw_event[3]
+        t["targetAddress"]=raw_event[4]
+        t["data"]=raw_event[5]
+        t["metadata"]=raw_event[6]
+    end
+
+    tb["interrupted"]=function(raw_event,t) --- Should soft interrupt be a special event?
+        t["event"]=raw_event[1]
+        t["uptime"]=raw_event[2]
+    end
+
+    --- Computronics
+    
+    tb["minecart"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["detectorAddress"]=raw_event[2]
+        t["minecartType"]=raw_event[3]
+        t["minecartName"]=raw_event[4]
+        t["primaryColor"]=raw_event[5]
+        t["secondaryColor"]=raw_event[6]
+        t["destination"]=raw_event[7]
+        t["ownerName"]=raw_event[8]
+    end
+
+    tb["aspect_changed"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["signalName"]=raw_event[3]
+        t["signalValue"]=raw_event[4]
+    end
+
+    --- LibNetBox
+
+    tb["net_message"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["receiverAddress"]=raw_event[2]
+        t["senderAddress"]=raw_event[3]
+        t["port"]=raw_event[4]
+        t["data"]={}
+        for i=5,raw_event.n,1 do 
+            table.insert(t["data"],raw_event[i])
+        end
+    end
+    
+    internal_evtb=tb
+
+    -- Mark as inited.
+    _hasInited=true
 end
 
-local function doEventCustomTranslate(raw_event,t)
-    local name=raw_event[1]
-    local call=internal_evtb[name]
-    call(raw_event,t)
-end
-
-local function doEventTranslate(raw_event)
+local function TranslateEvent(raw_event)
     local t={}
-    local nop=0
-
     local name=raw_event[1]
-    local a=raw_event[2]
-    local b=raw_event[3]
-    local c=raw_event[4]
-    local d=raw_event[5]
-    local e=raw_event[6]
-    local f=raw_event[7]
-    local g=raw_event[8]
-
     t["event"]=name
 
-    if(name=="component_added" or name=="component_removed") then
-        t["address"]=a
-        t["componentType"]=b
-    elseif(name=="component_available" or name=="component_unavailable") then
-        t["componentType"]=a
-    elseif(name=="term_available" or name=="term_unavailable") then
-        nop=nop+1
-    elseif(name=="screen_resized") then 
-        t["screenAddress"]=a
-        t["newWidth"]=b
-        t["newHeight"]=c
-    elseif(name=="touch" or name=="drag" or name=="drop") then
-        t["screenAddress"]=a
-        t["x"]=b
-        t["y"]=c
-        t["button"]=d
-        t["playerName"]=e
-    elseif(name=="scroll") then
-        t["screenAddress"]=a
-        t["x"]=b
-        t["y"]=c
-        t["direction"]=d
-        t["playerName"]=e
-    elseif(name=="walk") then 
-        t["screenAddress"]=a
-        t["x"]=b
-        t["y"]=c
-        t["playerName"]=d
-    elseif(name=="key_down" or name=="key_up") then
-        t["keyboardAddress"]=a
-        t["char"]=b
-        t["code"]=c
-        t["playerName"]=d
-    elseif(name=="clipboard") then
-        t["keyboardAddress"]=a
-        t["value"]=b
-        t["playerName"]=c
-    elseif(name=="redstone_changed") then
-        t["address"]=a
-        t["side"]=b
-        t["oldValue"]=c
-        t["newValue"]=d
-    elseif(name=="motion") then 
-        t["address"]=a
-        t["relativeX"]=b
-        t["relativeY"]=c
-        t["relativeZ"]=d
-        t["entityName"]=e
-    elseif(name=="modem_message") then --- Special
-        t["receiverAddress"]=a
-        t["senderAddress"]=b
-        t["port"]=c
-        t["distance"]=d
-        local dtb={}
-        for i=6,raw_event.n,1 do 
-            table.insert(dtb,raw_event[i])
-        end
-        t["data"]=dtb
-    elseif(name=="inventory_changed") then 
-        t["slot"]=a
-    elseif(name=="bus_message") then
-        t["protocolId"]=a
-        t["senderAddress"]=b
-        t["targetAddress"]=c
-        t["data"]=d
-        t["metadata"]=e
-    elseif(name=="interrupted") then
-        t["uptime"]=a
-    elseif(name=="minecart") then
-        t["detectorAddress"]=a
-        t["minecartType"]=b
-        t["minecartName"]=c
-        t["primaryColor"]=d
-        t["secondaryColor"]=e
-        t["destination"]=f
-        t["ownerName"]=g
-    elseif(name=="aspect_changed") then
-        t["address"]=a
-        t["signalName"]=b
-        t["signalValue"]=c
-    -- libnetbox events
-    elseif(name=="net_message") then
-        t["receiverAddress"]=a
-        t["senderAddress"]=b
-        t["port"]=c
-        local dtb={}
-        for i=5,raw_event.n,1 do 
-            table.insert(dtb,raw_event[i])
-        end
-        t["data"]=dtb
-    -- Unknown Event
+    -- Standard Events
+    if(internal_evtb[name]~=nil) then
+        internal_evtb[name](raw_event,t)
+    -- External Events
+    elseif(internal_evtbex[name]~=nil) then
+        internal_evtbex[name](raw_event,t)
+    -- Unknown Events. Args is packed into t.data (instead of returning the list)
     else
-        if(canEventTranslate(name)) then -- Try Translate
-            doEventCustomTranslate(raw_event,t)
-        else -- Cannot Translate
-            return table.unpack(raw_event)
-        end
+        t["data"]=table.pack(raw_event,2)
     end
 
     return t
@@ -141,7 +200,7 @@ function SetEventTranslator(event_name,callback)
     if(callback~=nil) then 
         checkfunction(callback) 
     end 
-    internal_evtb[event_name]=callback
+    internal_evtbex[event_name]=callback
 end
 
 function AddEventListener(EventName,CallbackFunction)
@@ -150,7 +209,7 @@ function AddEventListener(EventName,CallbackFunction)
     return event.listen(EventName,
         function(...)
             local raw_event=table.pack(...)
-            local rt=table.pack(doEventTranslate(raw_event))
+            local rt=table.pack(TranslateEvent(raw_event))
             if(type(rt[1])=="table") then
                 return CallbackFunction(rt[1])
             else
@@ -167,16 +226,16 @@ end
 function WaitEvent(...)
     local tb=table.pack(...)
     if(tb.n==0) then -- WaitEvent(),event.pull()
-        return doEventTranslate(table.pack(event.pull()))
+        return TranslateEvent(table.pack(event.pull()))
     elseif(type(tb[1])=="string") then
         if(tb[2]==nil) then -- WaitEvent("key_up"),event.pull("key_up")
-            return doEventTranslate(table.pack(event.pull(tb[1])))
+            return TranslateEvent(table.pack(event.pull(tb[1])))
         else  -- WaitEvent("key_up",1),event.pull(1,"key_up")
             checknumber(tb[2])
-            return doEventTranslate(table.pack(event.pull(tb[2],tb[1])))
+            return TranslateEvent(table.pack(event.pull(tb[2],tb[1])))
         end
     elseif(type(tb[1])=="number") then -- WaitEvent(1),event.pull(1)
-        return doEventTranslate(table.pack(event.pull(tb[1])))
+        return TranslateEvent(table.pack(event.pull(tb[1])))
     else
         error("Syntax error. Usage: WaitEvent([EventName],[TimeOutSecond])")
     end
@@ -189,7 +248,7 @@ function WaitMultipleEvent(...)
             error("Syntax error. Usage: WaitMultipleEvent(EventName1,[EventName2]...)")
         end
     end
-    return doEventTranslate(table.pack(event.pullMultiple(...)))
+    return TranslateEvent(table.pack(event.pullMultiple(...)))
 end
 
 function PushEvent(EventName,...)
@@ -279,3 +338,6 @@ function CreateEventBus()
         reset=DestroyEventBus
     }
 end
+
+--- Init Library on load
+doInternalEventInit()
