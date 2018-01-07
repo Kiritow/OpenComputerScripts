@@ -2,25 +2,25 @@ local component=require("component")
 local sides=require("sides")
 local thread=require("thread")
 require("libevent")
+require("libnetbox")
 require("util")
 
 --- Auto Configure
 local digital_controller = proxy("digital_controller_box")
 local digital_receiver = proxy("digital_receiver_box")
 local out_ticket = proxy("routing_track")
-local network_card = proxy("modem")
 
 --- Manually Configure
-local load_detector = proxy("digital_detector","0")
-local unload_detector = proxy("digital_detector","4")
+local load_detector = proxy("digital_detector","8")
+local unload_detector = proxy("digital_detector","1")
 
-local load_transposer = proxy("transposer","7")
-local unload_transposer = proxy("transposer","6")
+local load_transposer = proxy("transposer","c")
+local unload_transposer = proxy("transposer","5")
 
-local route_ab_load = proxy("routing_switch","0c")
-local route_ba_load = proxy("routing_switch","088")
-local route_ab_unload = proxy("routing_switch","08c")
-local route_ba_unload = proxy("routing_switch","c")
+local route_ab_load = proxy("routing_switch","c")
+local route_ba_load = proxy("routing_switch","6")
+local route_ab_unload = proxy("routing_switch","8")
+local route_ba_unload = proxy("routing_switch","2")
 
 --- Internal Variables
 local load_box_side
@@ -28,7 +28,6 @@ local unload_box_side
 local loading=0 -- 0 Free 1 Ready 2 Processing
 local unloading=0
 local lockway=0 -- 0 Free 1 Loading 2 Unloading
-
 
 -- Value: 1 Green 2 Blinking Yellow 3 Yellow 4 Blinking Red 5 Red
 local green=1
@@ -53,7 +52,6 @@ local function checkDevice()
     doCheckDevice(digital_controller)
     doCheckDevice(digital_receiver)
     doCheckDevice(out_ticket)
-    doCheckDevice(network_card)
     
     doCheckDevice(load_detector)
     doCheckDevice(unload_detector)
@@ -196,16 +194,16 @@ end
 
 local function getNewTransID(cnt)
     print("Getting new transfer id...")
-    network_card.open(10011)
-    network_card.broadcast(10010,"TSCM","req","store",cnt)
-    e=WaitEvent("modem_message",10)
+    OpenPort(10011)
+    BroadcastData(10010,"TSCM","req","store",cnt)
+    e=WaitEvent("net_message",10)
     local ret
     if(e~=nil and e.data[1]=="TSCM" and e.data[2]=="ack" and e.data[3]=="pass") then
         ret=e.data[4]
     else
         ret=nil
     end
-    network_card.close(10011)
+    ClosePort(10011)
     return ret
 end
 
@@ -344,6 +342,8 @@ local function main()
     checkDevice()
     resetDevice()
 
+    clientServiceStart()
+
     while true do
         print(
             "-------------\n" ..
@@ -366,6 +366,8 @@ local function main()
 
     resetDevice()
     unlockUnloadChest()
+
+    clientServiceStop()
 end
 
 print("Transport System Client Started.")

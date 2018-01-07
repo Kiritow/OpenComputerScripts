@@ -1,5 +1,6 @@
 local component=require("component")
 require("libevent")
+require("libnetbox")
 require("util")
 
 --- Auto Configure
@@ -24,26 +25,28 @@ local idt={}
 local function getNextID()
     local nextid=1
     for k,v in pairs(idt) do 
-        if(v>nextid) then nextid=v+1 end
+        if(k>nextid) then nextid=k+1 end
     end
+    idt[nextid]=true
     return nextid
 end
 
 local function main()
     checkDevice()
+    clientServiceStart()
 
-    network_card.open(10010)
+    OpenPort(10010)
 
     print("Center Started. Press Ctrl+C to stop.")
 
     while true do
         local e=WaitEvent()
         if(e~=nil) then
-            if(e.event=="modem_message" and e.data[1]=="TSCM") then
+            if(e.event=="net_message" and e.data[1]=="TSCM") then
                 if(e.data[2]=="req") then 
                     if(e.data[3]=="store") then
                         local id=getNextID()
-                        network_card.send(e.senderAddress,10011,"TSCM","ack","pass",id)
+                        SendData(e.senderAddress,10011,"TSCM","ack","pass",id)
                         print("NextID: ",id)
                     end
                 end
@@ -53,7 +56,8 @@ local function main()
         end
     end
 
-    network_card.close(10010)
+    ClosePort(10010)
+    clientServiceStop()
 end
 
 print("Transport System Center Started.")
