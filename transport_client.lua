@@ -208,7 +208,7 @@ local function getNewTransID(cnt)
 end
 
 local function SetTicket(Dest)
-    routing_track.setDestination(Dest)
+    out_ticket.setDestination(Dest)
 end
 
 local function doLoadWork(item_cnt)
@@ -267,6 +267,14 @@ local function doLoadWork(item_cnt)
             lockway=0
         end
 
+        local function startOutWay()
+            setSignal("OutCtrl",green)
+            os.sleep(0.5)
+            setSignal("OutCtrl",red)
+        
+            unlockOutWay()
+        end
+
         while true do
             local e=GetNextEvent(bus)
             if(e.event=="minecart") then
@@ -288,7 +296,9 @@ local function doLoadWork(item_cnt)
                 elseif(e.minecartType=="cart_worldspike_admin") then
                     print("LoadWork: Found world spike. Finish.")
                     trigger()
-                    unlockOutWay()
+                    trigger()
+
+                    startOutWay()
                     break
                 else
                     print("LoadWork: Skipping unknown cart_type: " .. e.minecartType)
