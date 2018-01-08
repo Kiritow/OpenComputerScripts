@@ -33,7 +33,7 @@ end
 
 local function main()
     checkDevice()
-    clientServiceStart()
+    NetBoxInit()
 
     OpenPort(10010)
 
@@ -57,7 +57,7 @@ local function main()
     end
 
     ClosePort(10010)
-    clientServiceStop()
+    NetBoxCleanUp()
 end
 
 print("Transport System Center Started.")

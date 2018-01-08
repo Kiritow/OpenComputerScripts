@@ -342,7 +342,7 @@ local function main()
     checkDevice()
     resetDevice()
 
-    clientServiceStart()
+    NetBoxInit()
 
     while true do
         print(
@@ -367,7 +367,7 @@ local function main()
     resetDevice()
     unlockUnloadChest()
 
-    clientServiceStop()
+    NetBoxCleanUp()
 end
 
 print("Transport System Client Started.")

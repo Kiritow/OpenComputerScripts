@@ -290,13 +290,17 @@ function GetNextEvent(t,wait_second)
     checktable(t)
     if(wait_second~=nil) then
         checknumber(wait_second)
+    else
+        -- This has caused thousands of error! Now, without wait_second, by default, it means wait infinitely.
+        -- If you want a non-blocking check, call GetNextEvent(bus,0) instead!
+        wait_second=-1
     end
 
     if(t.events[1]~=nil) then
         local e=t.events[1]
         table.remove(t.events,1)
         return e
-    elseif(wait_second~=nil) then
+    else
         if(wait_second<0) then
             while t.events[1]==nil do
                 os.sleep(1)
@@ -316,8 +320,6 @@ function GetNextEvent(t,wait_second)
         else
             return nil
         end
-    else
-        return nil
     end
 end
 
