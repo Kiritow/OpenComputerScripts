@@ -13,7 +13,7 @@ local function doInternalEventInit()
     end
 
     -- tb is a reference to event table.
-    local tb={}
+    local tb=internal_evtb
 
     tb["component_added"]=function(raw_event,t)
         t["event"]=raw_event[1]
@@ -114,8 +114,9 @@ local function doInternalEventInit()
         t["distance"]=raw_event[5]
         t["data"]={}
         for i=6,raw_event.n,1 do 
-            table.insert(t["data"],raw_event[i])
+            t["data"][i-5]=raw_event[i]
         end
+        t["data"].n=raw_event.n-5
     end
 
     tb["inventory_changed"]=function(raw_event,t)
@@ -166,11 +167,10 @@ local function doInternalEventInit()
         t["port"]=raw_event[4]
         t["data"]={}
         for i=5,raw_event.n,1 do 
-            table.insert(t["data"],raw_event[i])
+            t["data"][i-4]=raw_event[i]
         end
+        t["data"].n=raw_event.n-4;
     end
-    
-    internal_evtb=tb
 
     -- Mark as inited.
     _hasInited=true
