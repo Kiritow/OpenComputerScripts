@@ -337,6 +337,8 @@ function CreateEventBus()
         -- Enable using t:listen(...)
         listen=EventBusListen,
         next=GetNextEvent,
+        close=DestroyEventBus,
+        -- Deprecated
         reset=DestroyEventBus
     }
 end
