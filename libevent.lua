@@ -158,6 +158,38 @@ local function doInternalEventInit()
         t["signalValue"]=raw_event[4]
     end
 
+    --- OpenSecurity
+
+    tb["magData"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["user"]=raw_event[3]
+        t["content"]=raw_event[4]
+        t["uuid"]=raw_event[5]
+        t["locked"]=raw_event[6]
+        t["side"]=raw_event[7]
+    end
+
+    tb["cardInsert"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+    end
+
+    tb["cardRemove"]=tb["cardInsert"]
+
+    tb["keypad"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["id"]=raw_event[3]
+        t["label"]=raw_evnet[4]
+    end
+
+    tb["bioReader"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["uuid"]=raw_event[3]
+    end
+
     --- LibNetBox
 
     tb["net_message"]=function(raw_event,t)
