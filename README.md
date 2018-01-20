@@ -6,3 +6,9 @@ Just some pieces of scripts for OpenComputers
 And developers there are very friendly. You can submit a new issue if you find something wrong, or you can join the IRC and talk to them directly~!
 
 Also [view it on Minecraft CurseForge](https://minecraft.curseforge.com/projects/opencomputers) too
+
+This repo also uses [Computronics](https://github.com/asiekierka/Computronics/tree/master/src/main/resources/assets/computronics/doc/opencomputers/computronics/en_US)  and [OpenSecurity](https://github.com/PC-Logix/OpenSecurity/wiki) (Document links)
+
+Other useful links:
+
+[Computronics Official Wiki](https://wiki.vexatos.com/wiki:computronics)
