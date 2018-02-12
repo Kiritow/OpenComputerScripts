@@ -158,6 +158,13 @@ local function doInternalEventInit()
         t["signalValue"]=raw_event[4]
     end
 
+    tb["chat_message"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["username"]=raw_event[3]
+        t["message"]=raw_event[4]
+    end
+
     --- OpenSecurity
 
     tb["magData"]=function(raw_event,t)
