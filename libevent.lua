@@ -165,6 +165,13 @@ local function doInternalEventInit()
         t["message"]=raw_event[4]
     end
 
+    tb["switch_flipped"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["index"]=raw_event[3]
+        t["newState"]=raw_event[4]
+    end
+
     --- OpenSecurity
 
     tb["magData"]=function(raw_event,t)
