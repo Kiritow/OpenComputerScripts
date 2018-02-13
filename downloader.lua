@@ -1,19 +1,17 @@
 local component=require("component")
 
-function DownloadFromGitHub(RepoName,Branch,FileAddress)
-    local hwtable=component.list()
+local function doRealDownload(url)
+    local hwtable=component.list("internet")
     local found=false
     for k,v in pairs(hwtable) do
-        if(v=="internet") then
-            found=true
-        end
+        found=true
     end
     if(not found) then
         error("The downloader requires an Internet card.")
     end
 
-    local url="https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
     local handle=component.internet.request(url)
+
     local ans=""
     while true do
         local tmp=handle.read()
@@ -23,6 +21,11 @@ function DownloadFromGitHub(RepoName,Branch,FileAddress)
     handle.close()
 
     return ans
+end
+
+function DownloadFromGitHub(RepoName,Branch,FileAddress)
+    local url="https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
+    return doRealDownload(url)
 end
 
 function DownloadFromOCS(FileAddress)
@@ -44,4 +47,3 @@ function WriteStringToFile(StringValue,FileName,IsAppend)
 
     return true,"Success"
 end
-

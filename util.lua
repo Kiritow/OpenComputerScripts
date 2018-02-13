@@ -1,4 +1,13 @@
 local component=require("component")
+local serialization = require("serialization")
+
+function serialize(value)
+    return serialization.serialize(value)
+end
+
+function unserialize(str)
+    return serialization.unserialize(str)
+end
 
 function getTableSize(t)
     local cnt=0
@@ -20,7 +29,7 @@ function proxy(componentType,beginWith)
     local t=component.list(componentType)
     local sz=getTableSize(t)
     if(sz==0) then
-        print("Query List is Empty")
+        print("proxy: Query List is Empty")
         return nil
     elseif(sz==1) then
         for k in pairs(t) do
@@ -28,11 +37,11 @@ function proxy(componentType,beginWith)
         end
     else
         if(beginWith == nil) then
-            print("beginWith value required.")
+            print("proxy: beginWith value required.")
             return nil
         end
         if(type(beginWith) ~= "string") then
-            print("beginWith is not string")
+            print("proxy: beginWith is not string")
             return nil
         end
         local bsz=string.len(beginWith)
@@ -44,14 +53,14 @@ function proxy(componentType,beginWith)
                     traw=rawproxy(k)
                     cnt=1
                 else
-                    print("Found more than 1 target.")
+                    print("proxy: Found more than 1 target.")
                     return nil
                 end
             end
         end
 
         if(cnt==0) then 
-            print("Not found with beginWith value")
+            print("proxy: Not found with beginWith value")
             return nil
         else
             return traw

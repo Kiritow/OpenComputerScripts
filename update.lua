@@ -1,7 +1,8 @@
--- From Downloader
+---------------------------- Begin of From Downloader
+
 local component=require("component")
 
-function DownloadFromGitHub(RepoName,Branch,FileAddress)
+local function doRealDownload(url)
     local hwtable=component.list("internet")
     local found=false
     for k,v in pairs(hwtable) do
@@ -11,8 +12,8 @@ function DownloadFromGitHub(RepoName,Branch,FileAddress)
         error("The downloader requires an Internet card.")
     end
 
-    local url="https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
     local handle=component.internet.request(url)
+
     local ans=""
     while true do
         local tmp=handle.read()
@@ -22,6 +23,11 @@ function DownloadFromGitHub(RepoName,Branch,FileAddress)
     handle.close()
 
     return ans
+end
+
+function DownloadFromGitHub(RepoName,Branch,FileAddress)
+    local url="https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
+    return doRealDownload(url)
 end
 
 function DownloadFromOCS(FileAddress)
@@ -44,7 +50,7 @@ function WriteStringToFile(StringValue,FileName,IsAppend)
     return true,"Success"
 end
 
--- From Downloader
+----------------------------- End of From Downloader
 
 local code_lst=
 {
