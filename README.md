@@ -12,3 +12,9 @@ This repo also uses [Computronics](https://github.com/asiekierka/Computronics/tr
 Other useful links:
 
 [Computronics Official Wiki](https://wiki.vexatos.com/wiki:computronics)
+
+## Quick Setup
+
+Select all content of [update.lua](update.lua) and copy to clipboard. Switch to Minecraft and open any computer. Type `edit update`, then paste the code (use middle button of mouse). Save (ctrl+s) and close (ctrl+w) the editor. Then use `update` to setup basic libraries.
+
+Notice that `update.lua` needs an internet card to download files.
