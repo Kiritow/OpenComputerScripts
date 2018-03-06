@@ -373,6 +373,8 @@ function DestroyEventBus(t)
     for k,v in pairs(t.listeners) do
         RemoveEventListener(v)
     end
+    t.listeners={}
+    t.events={}
 end
 
 function CreateEventBus()
