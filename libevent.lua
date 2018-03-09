@@ -269,22 +269,12 @@ function RemoveEventListener(ListenerID)
     return event.ignore(event.handlers[ListenerID].key,event.handlers[ListenerID].callback)
 end
 
+-- Usage: WaitEvent([timeout],[event name],[other filter value])
+-- Example: WaitEvent() WaitEvent(1) WaitEvent("touch") WaitEvent(1,"touch")
+--          WaitEvent("touch",nil,nil,"somebody")
+--          WaitEvent(1,"touch",nil,nil,"somebody")
 function WaitEvent(...)
-    local tb=table.pack(...)
-    if(tb.n==0) then -- WaitEvent(),event.pull()
-        return TranslateEvent(table.pack(event.pull()))
-    elseif(type(tb[1])=="string") then
-        if(tb[2]==nil) then -- WaitEvent("key_up"),event.pull("key_up")
-            return TranslateEvent(table.pack(event.pull(tb[1])))
-        else  -- WaitEvent("key_up",1),event.pull(1,"key_up")
-            checknumber(tb[2])
-            return TranslateEvent(table.pack(event.pull(tb[2],tb[1])))
-        end
-    elseif(type(tb[1])=="number") then -- WaitEvent(1),event.pull(1)
-        return TranslateEvent(table.pack(event.pull(tb[1])))
-    else
-        error("Syntax error. Usage: WaitEvent([EventName],[TimeOutSecond])")
-    end
+    return TranslateEvent(table.pack(event.pull(...)))
 end
 
 -- Usage: WaitMultipleEvent([timeout],Event1,Event2,...)
