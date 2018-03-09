@@ -82,7 +82,7 @@ local function printMap(base,mask)
         gpu:set(i+1,1,"|")
 
         for j=1,base.col,1 do 
-            if(mask[i][j]) then
+            if(mask[i][j]>0) then
                 if(base[i][j]>=0) then
                     gpu:set(i+1,j+1,tostring(base[i][j]))
                 else
@@ -90,6 +90,10 @@ local function printMap(base,mask)
                     gpu:set(i+1,j+1,"X")
                     gpu:popfg()
                 end
+            elseif(mask[i][j]<0) then
+                gpu:pushfg(0xFFFF00)
+                gpu:set(i+1,j+1,"?")
+                gpu:popfg()
             end
         end
         
@@ -105,7 +109,7 @@ end
 local function main()
     -- printMap(generateMap(10,10,5),generateBlankMask(10,10,true))
     local mp=generateMap(10,10,5)
-    local mask=generateBlankMask(10,10,false)
+    local mask=generateBlankMask(10,10,0)
 
     printMap(mp,mask)
 
@@ -117,23 +121,24 @@ local function main()
         local col=e.x-1
 
         if(not (line<1 or col<1 or line>mp.line or col>mp.col) ) then
-            if(mp[line][col]<0) then
-                -- GameOver
-                --[[ for i=1,line,1 do
-                    for j=1,col,1 do 
-                        if(mp[i][j]<0) then
-                            mask[i][j]=true
-                        end
-                    end
-                end
-                --]]
-                mask=generateBlankMask(mp.line,mp.col,true)
+            if(e.button==0) then
+                if(mp[line][col]<0) then
+                    mask=generateBlankMask(mp.line,mp.col,1)
 
-                printMap(mp,mask)
-                os.sleep(5)
-                return 
-            elseif(not mask[line][col]) then
-                mask[line][col]=true
+                    printMap(mp,mask)
+                    os.sleep(5)
+                    return 
+                elseif(mask[line][col]==0) then
+                    mask[line][col]=1
+                    printMap(mp,mask)
+                end
+            else
+                if(mask[line][col]==0) then
+                    mask[line][col]=-1
+                elseif(mask[line][col]==-1) then
+                    mask[line][col]=0
+                end
+
                 printMap(mp,mask)
             end
         end
