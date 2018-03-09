@@ -269,12 +269,38 @@ function RemoveEventListener(ListenerID)
     return event.ignore(event.handlers[ListenerID].key,event.handlers[ListenerID].callback)
 end
 
--- Usage: WaitEvent([timeout],[event name],[other filter value])
--- Example: WaitEvent() WaitEvent(1) WaitEvent("touch") WaitEvent(1,"touch")
---          WaitEvent("touch",nil,nil,"somebody")
---          WaitEvent(1,"touch",nil,nil,"somebody")
-function WaitEvent(...)
+-- Usage: WaitEventEx([timeout],[event name],[other filter value])
+-- Example: WaitEventEx() WaitEventEx(1) WaitEventEx("touch") WaitEventEx(1,"touch")
+--          WaitEventEx("touch",nil,nil,"somebody")
+--          WaitEventEx(1,"touch",nil,nil,"somebody")
+function WaitEventEx(...)
     return TranslateEvent(table.pack(event.pull(...)))
+end
+
+-- Usage: WaitEvent([timeout],[event name]) or
+--        WaitEvent([event name],[timeout]) -- Fallback usage
+function WaitEvent(a,b)
+    if(a==nil) then
+        return WaitEventEx()
+    elseif(type(a)=="string") then
+        if(b==nil) then
+            return WaitEventEx(a)
+        elseif(type(b)=="number") then
+            return WaitEventEx(b,a)
+        else
+            error("Second param must be number or nil")
+        end
+    elseif(type(a)=="number") then
+        if(b==nil) then
+            return WaitEventEx(a)
+        elseif(type(b)=="string") then
+            return WaitEventEx(a,b)
+        else
+            error("Second param must be string or nil")
+        end
+    else
+        error("First param must be string or number or nil")
+    end
 end
 
 -- Usage: WaitMultipleEvent([timeout],Event1,Event2,...)
