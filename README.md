@@ -1,6 +1,8 @@
 # OpenComputerScripts
 Just some pieces of scripts for OpenComputers
 
+[中文版本](README_zhCN.md)
+
 [OpenComputers](https://github.com/MightyPirates/OpenComputers) is an amazing mod for Minecraft. I really love it !
 
 And developers there are very friendly. You can submit a new issue if you find something wrong, or you can join the IRC and talk to them directly~!
