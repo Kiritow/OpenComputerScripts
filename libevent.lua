@@ -287,13 +287,9 @@ function WaitEvent(...)
     end
 end
 
+-- Usage: WaitMultipleEvent([timeout],Event1,Event2,...)
 function WaitMultipleEvent(...)
-    local tb=table.pack(...)
-    for i=1,tb.n,1 do 
-        if(type(tb[i])~="string") then 
-            error("Syntax error. Usage: WaitMultipleEvent(EventName1,[EventName2]...)")
-        end
-    end
+    -- event.pullMultiple will check the param
     return TranslateEvent(table.pack(event.pullMultiple(...)))
 end
 
@@ -306,9 +302,12 @@ function AddTimer(Interval,CallbackFunction,Times)
     checknumber(Interval)
     checkfunction(CallbackFunction)
     checknumber(Times) 
-    if(Times<1) then -- Timer will infinitly run (when times <0)
+
+    -- If times==0, just don't add it.
+
+    if(Times<0) then -- Timer will infinitly run (when times <0)
         return event.timer(Interval,CallbackFunction,math.huge)
-    else -- Timer will run [Times] times.
+    elseif(Times>0) then -- Timer will run [Times] times.
         return event.timer(Interval,CallbackFunction,Times)
     end
 end
