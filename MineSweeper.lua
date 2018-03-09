@@ -86,7 +86,9 @@ local function printMap(base,mask)
                 if(base[i][j]>=0) then
                     gpu:set(i+1,j+1,tostring(base[i][j]))
                 else
+                    gpu:pushfg(0xFF0000)
                     gpu:set(i+1,j+1,"X")
+                    gpu:popfg()
                 end
             end
         end
