@@ -1,5 +1,30 @@
 local component=require("component")
 local serialization = require("serialization")
+local filesystem=require("filesystem")
+
+function getWorldTimestamp()
+    local name=os.tmpname()
+    local f=io.open(name,"w")
+    f:close()
+    local ts=filesystem.lastModified(name)
+    filesystem.remove(name)
+    return ts
+end
+
+function getWorldTimeInfo(gmt)
+    if(gmt==nil) then gmt=0 end
+    local x=getWorldTimestamp()+gmt*3600*1000
+    local t=os.date("*t",math.ceil(x/1000))
+    t.msec=x%1000
+    t.unix=math.ceil(x/1000)
+    t.stamp=x
+    return t
+end
+
+function getWorldDate(gmt)
+    local t=getWorldTimeInfo(gmt)
+    return t.year,t.month,t.day,t.hour,t.min,t.sec,t.msec
+end
 
 function serialize(value)
     return serialization.serialize(value)
