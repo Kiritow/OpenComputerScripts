@@ -332,7 +332,7 @@ function EventBusListen(t,event_name)
     )
 end
 
-function GetNextEvent(t,wait_second)
+function GetNextEvent(t,wait_second,wait_ratio)
     checktable(t)
     if(wait_second~=nil) then
         checknumber(wait_second)
@@ -342,6 +342,20 @@ function GetNextEvent(t,wait_second)
         wait_second=-1
     end
 
+    if(wait_ratio~=nil) then
+        checknumber(wait_ratio)
+
+        if(wait_ratio>1) then
+            wait_ratio=1/wait_ratio
+        end
+        
+        if(wait_ratio<0.05) then
+            error("Wait ratio should greater than 0.05. (cps less than 20)")
+        end
+    else
+        wait_ratio=1
+    end
+
     if(t.events[1]~=nil) then
         local e=t.events[1]
         table.remove(t.events,1)
@@ -349,13 +363,13 @@ function GetNextEvent(t,wait_second)
     else
         if(wait_second<0) then
             while t.events[1]==nil do
-                os.sleep(1)
+                os.sleep(wait_ratio)
             end
         else
             local wait_second_left=wait_second
             while t.events[1]==nil and wait_second_left>0 do 
-                os.sleep(1)
-                wait_second_left=wait_second_left-1
+                os.sleep(wait_ratio)
+                wait_second_left=wait_second_left-wait_ratio
             end
         end
 
