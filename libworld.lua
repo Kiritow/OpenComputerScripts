@@ -41,8 +41,9 @@ function PasteArea(box,ax,ay,az)
     local world=debugcard.getWorld()
     for k,v in ipairs(box) do
         print("Pasting to (" .. ax+v.x .. "," .. ay+v.y .. "," .. az+v.z .. ")")
-        world.setBlock(ax+v.x,ay+v.y,az+v.z,v.id,v.meta)
+        world.setBlock(ax+v.x,ay+v.y,az+v.z,v.id,0)
         cnt=cnt+1
     end
     return cnt  
 end
+
