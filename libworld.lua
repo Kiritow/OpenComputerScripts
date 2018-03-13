@@ -191,6 +191,9 @@ function PasteArea(box,ax,ay,az)
     if(debugcard==nil) then
         error("This program require debug card.")
     end
+    if(computer.getArchitecture()~="Lua 5.2") then
+        print("Warning: Without Lua 5.2 architecture, NBT may cause fatal error.")
+    end
 
     local cnt=0
     local world=debugcard.getWorld()
@@ -198,7 +201,7 @@ function PasteArea(box,ax,ay,az)
         print("Pasting to (" .. ax+v.x .. "," .. ay+v.y .. "," .. az+v.z .. ")")
         world.setBlock(ax+v.x,ay+v.y,az+v.z,v.id,v.meta)
         if(v.nbt~=nil) then
-            world.setTileNBT(x,y,z,v.nbt)
+            world.setTileNBT(ax+v.x,ay+v.y,az+v.z,v.nbt)
         end
         cnt=cnt+1
     end
