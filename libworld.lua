@@ -98,12 +98,11 @@ function CopyAreaStrID(ax,ay,az,bx,by,bz)
     if(ay>by) then ay,by=by,ay end
     if(az>bz) then az,bz=bz,az end
     local total=(bx-ax+1)*(by-ay+1)*(bz-az+1)
-    local cnt=0
+    local cnt=1
     local world=debugcard.getWorld()
     for x=ax,bx,1 do
         for y=ay,by,1 do
             for z=az,bz,1 do
-                cnt=cnt+1
                 print("Adding Block (" .. x .. "," .. y .. "," .. z .. ") " .. cnt .. " of " .. total .. " [" .. cnt*100/total .. "%]")
                 if(not world.isLoaded(x,y,z)) then
                     error("Block (" .. x .. "," .. y .. "," .. z .. ") is not loaded.")
@@ -127,6 +126,60 @@ function CopyAreaStrID(ax,ay,az,bx,by,bz)
                     t.nbt=xnbt
                 end
                 table.insert(box,t)
+                cnt=cnt+1
+            end
+        end
+    end
+    return box
+end
+
+-- Act like CopyAreaWithoutAir, but store block ID in string type.
+function CopyAreaWithoutAirStrID(ax,ay,az,bx,by,bz)
+    local debugcard=component.debug
+    if(debugcard==nil) then
+        error("This program require debug card.")
+    end
+
+    local box={}
+    if(ax>bx) then ax,bx=bx,ax end
+    if(ay>by) then ay,by=by,ay end
+    if(az>bz) then az,bz=bz,az end
+    local total=(bx-ax+1)*(by-ay+1)*(bz-az+1)
+    local cnt=1
+    local world=debugcard.getWorld()
+    for x=ax,bx,1 do
+        for y=ay,by,1 do
+            for z=az,bz,1 do
+                print("Adding Block (" .. x .. "," .. y .. "," .. z .. ") " .. cnt .. " of " .. total .. " [" .. cnt*100/total .. "%]")
+                if(not world.isLoaded(x,y,z)) then
+                    error("Block (" .. x .. "," .. y .. "," .. z .. ") is not loaded.")
+                end
+                local t={}
+                
+                local blkstate=world.getBlockState(x,y,z)
+                local blklftidx=string.find(blkstate,"[",1,true)
+                if(blklftidx~=nil) then
+                    -- minecraft:grass[snowy=false]
+                    t.id=string.sub(blkstate,1,blklftidx-1)
+                else
+                    -- minecraft:gold_block
+                    t.id=blkstate
+                end
+
+                if(t.id~="minecraft:air") then
+                    t.x=x-ax
+                    t.y=y-ay
+                    t.z=z-az
+                    t.meta=world.getMetadata(x,y,z)
+                    local xnbt=world.getTileNBT(x,y,z)
+                    if(xnbt~=nil) then
+                        t.nbt=xnbt
+                    end
+                    table.insert(box,t)
+                    cnt=cnt+1
+                else
+                    total=total-1
+                end
             end
         end
     end
@@ -150,6 +203,6 @@ function PasteArea(box,ax,ay,az)
         cnt=cnt+1
     end
     print("Pasted " .. cnt .. " blocks.")
-    return cnt  
+    return cnt 
 end
 
