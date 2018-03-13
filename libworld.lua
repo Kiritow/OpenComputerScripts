@@ -16,12 +16,11 @@ function CopyArea(ax,ay,az,bx,by,bz)
     if(ay>by) then ay,by=by,ay end
     if(az>bz) then az,bz=bz,az end
     local total=(bx-ax+1)*(by-ay+1)*(bz-az+1)
-    local cnt=0
+    local cnt=1
     local world=debugcard.getWorld()
     for x=ax,bx,1 do
         for y=ay,by,1 do
             for z=az,bz,1 do
-                cnt=cnt+1
                 print("Adding Block (" .. x .. "," .. y .. "," .. z .. ") " .. cnt .. " of " .. total .. " [" .. cnt*100/total .. "%]")
                 if(not world.isLoaded(x,y,z)) then
                     error("Block (" .. x .. "," .. y .. "," .. z .. ") is not loaded.")
@@ -37,6 +36,7 @@ function CopyArea(ax,ay,az,bx,by,bz)
                     t.nbt=xnbt
                 end
                 table.insert(box,t)
+                cnt=cnt+1
             end
         end
     end
@@ -55,12 +55,11 @@ function CopyAreaWithoutAir(ax,ay,az,bx,by,bz)
     if(ay>by) then ay,by=by,ay end
     if(az>bz) then az,bz=bz,az end
     local total=(bx-ax+1)*(by-ay+1)*(bz-az+1)
-    local cnt=0
+    local cnt=1
     local world=debugcard.getWorld()
     for x=ax,bx,1 do
         for y=ay,by,1 do
             for z=az,bz,1 do
-                cnt=cnt+1
                 print("Adding Block (" .. x .. "," .. y .. "," .. z .. ") " .. cnt .. " of " .. total .. " [" .. cnt*100/total .. "%]")
                 if(not world.isLoaded(x,y,z)) then
                     error("Block (" .. x .. "," .. y .. "," .. z .. ") is not loaded.")
@@ -77,6 +76,9 @@ function CopyAreaWithoutAir(ax,ay,az,bx,by,bz)
                         t.nbt=xnbt
                     end
                     table.insert(box,t)
+                    cnt=cnt+1
+                else
+                    total=total-1
                 end
             end
         end
@@ -90,7 +92,7 @@ function CopyAreaStrID(ax,ay,az,bx,by,bz)
     if(debugcard==nil) then
         error("This program require debug card.")
     end
-    
+
     local box={}
     if(ax>bx) then ax,bx=bx,ax end
     if(ay>by) then ay,by=by,ay end
@@ -132,6 +134,11 @@ function CopyAreaStrID(ax,ay,az,bx,by,bz)
 end
 
 function PasteArea(box,ax,ay,az)
+    local debugcard=component.debug
+    if(debugcard==nil) then
+        error("This program require debug card.")
+    end
+
     local cnt=0
     local world=debugcard.getWorld()
     for k,v in ipairs(box) do
