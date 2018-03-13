@@ -1,16 +1,23 @@
 local component=require("component")
 
 local function doRealDownload(url)
-    local hwtable=component.list("internet")
-    local found=false
-    for k,v in pairs(hwtable) do
-        found=true
-    end
-    if(not found) then
+    if(component.internet==nil) then
         error("The downloader requires an Internet card.")
     end
 
     local handle=component.internet.request(url)
+
+    while true do
+        local ret,err=handle.finishConnect()
+        if(ret==nil) then
+            return false,err
+        elseif(ret==true) then
+            break
+        end
+        --os.sleep(0.1)
+    end
+
+    local response_code=handle.response()
 
     local ans=""
     while true do
@@ -20,7 +27,7 @@ local function doRealDownload(url)
     end
     handle.close()
 
-    return ans
+    return true,ans,response_code
 end
 
 function DownloadFromGitHub(RepoName,Branch,FileAddress)

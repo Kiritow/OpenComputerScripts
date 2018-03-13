@@ -3,16 +3,23 @@
 local component=require("component")
 
 local function doRealDownload(url)
-    local hwtable=component.list("internet")
-    local found=false
-    for k,v in pairs(hwtable) do
-        found=true
-    end
-    if(not found) then
+    if(component.internet==nil) then
         error("The downloader requires an Internet card.")
     end
 
     local handle=component.internet.request(url)
+
+    while true do
+        local ret,err=handle.finishConnect()
+        if(ret==nil) then
+            return false,err
+        elseif(ret==true) then
+            break
+        end
+        --os.sleep(0.1)
+    end
+
+    local response_code=handle.response()
 
     local ans=""
     while true do
@@ -22,7 +29,7 @@ local function doRealDownload(url)
     end
     handle.close()
 
-    return ans
+    return true,ans,response_code
 end
 
 function DownloadFromGitHub(RepoName,Branch,FileAddress)
@@ -51,32 +58,51 @@ function WriteStringToFile(StringValue,FileName,IsAppend)
 end
 
 ----------------------------- End of From Downloader
+local shell=require("shell")
+local args=shell.parse(...)
+local argc=#args
 
-local code_lst=
+local file_lst={}
+
+if(argc<1) then
+file_lst=
 {
-    "SignReader",
-    "checkarg",
-    "class",
-    -- "downloader",
-    "libevent",
-    "libnetwork",
-    -- "mcssh",
-    "queue",
-    "util",
-    "vector"
+    "SignReader.lua",
+    "checkarg.lua",
+    "class.lua",
+    "downloader.lua",
+    "libevent.lua",
+    "queue.lua",
+    "util.lua",
+    "vector.lua",
+    "LICENSE"
 }
+else
+    for i=1,argc,1 do
+        table.insert(file_lst,args[i])
+    end
+end
 
 local cnt_all=0
-for k,v in pairs(code_lst) do
+for k,v in pairs(file_lst) do
     cnt_all=cnt_all+1
 end
 
 local cnt_now=1
 
 -- Download from the list
-for k,v in pairs(code_lst) do 
-    print("Updating (" .. cnt_now .. "/" .. cnt_all .. "): " .. v)
-    local x=DownloadFromOCS(v .. ".lua")
-    if(x~=nil) then WriteStringToFile(x,v .. ".lua") end
-    cnt_now = cnt_now + 1
+for k,v in pairs(file_lst) do 
+    io.write("Updating (" .. cnt_now .. "/" .. cnt_all .. "): " .. v .. " ")
+    local flag,x,y=DownloadFromOCS(v)
+    if((not flag) or (y~=200) ) then
+        print("[Download Failed]")
+    else
+        local ret=WriteStringToFile(x,v)
+        if(not ret) then
+            print("[Write Failed]")
+        else
+            print("[OK]")
+        end
+        cnt_now = cnt_now + 1
+    end
 end
