@@ -1,7 +1,7 @@
 -- Mine Sweeper Game
 -- Author: Github/Kiritow
 
-require("kgui")
+require("libgpu")
 require("libevent")
 require("queue")
 local component=require("component")

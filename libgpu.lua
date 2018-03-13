@@ -1,4 +1,4 @@
--- Kiritow's GUI Library
+-- LibGPU - A library help operating GPU.
 -- Author: Github/Kiritow
 
 local component=require("component")
