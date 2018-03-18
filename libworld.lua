@@ -2,6 +2,7 @@
 -- Author: Github/Kiritow
 
 local component=require("component")
+local computer=require("computer")
 
 -- Copy an area. returns a table contains area info.
 -- Can be serialized and stored in files.
