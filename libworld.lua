@@ -4,6 +4,42 @@
 local component=require("component")
 local computer=require("computer")
 
+function GetBlockBorder(x,y,z)
+    local lx,lz,mx,mz
+    if(x<0) then 
+        lx=math.ceil((-x)/16)
+        if((-x)%16>0) then
+            lx=lx+1
+        end
+        lx=(-lx)*16
+        mx=lx+15
+    else
+        lx=math.ceil(x/16)
+        if(x%16>0) then 
+            lx=lx+1
+        end
+        lx=lx*16
+        mx=lx+15
+    end
+
+    if(z<0) then
+        lz=math.ceil((-z)/16)
+        if((-z)%16>0) then
+            lz=lz+1
+        end
+        lz=(-lz)*16
+        mz=lz+15
+    else
+        lz=math.ceil(z/16)
+        if(z%16>0) then 
+            lz=lz+1
+        end
+        lz=lz*16
+        mz=lz+15
+    end
+    return lx,lz,mx,mz
+end
+
 -- Copy an area. returns a table contains area info.
 -- Can be serialized and stored in files.
 function CopyArea(ax,ay,az,bx,by,bz)
