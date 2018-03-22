@@ -335,16 +335,28 @@ end
 
 --- EventBus: Queued event bus.
 --- Notice that event bus can only handle event packages.
-function EventBusListen(t,event_name)
+function EventBusListen(t,event_name,checkfn)
     checktable(t)
     checkstring(event_name)
-    table.insert(t.listeners,
-        AddEventListener(event_name,
-            function(epack)
-                table.insert(t.events,epack)
-            end
+    if(checkfn~=nil and type(checkfn)=="function") then
+        table.insert(t.listeners,
+            AddEventListener(event_name,
+                function(epack)
+                    if(checkfn(epack)) then
+                        table.insert(t.events,epack)
+                    end
+                end
+            )
         )
-    )
+    else
+        table.insert(t.listeners,
+            AddEventListener(event_name,
+                function(epack)
+                    table.insert(t.events,epack)
+                end
+            )
+        )
+    end
 end
 
 function GetNextEvent(t,wait_second,wait_ratio)
