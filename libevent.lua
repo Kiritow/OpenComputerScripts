@@ -238,6 +238,12 @@ local function TranslateEvent(raw_event)
         t["data"]=table.pack(raw_event,2)
     end
 
+    setmetatable(t,{__index=function(xt,xk)
+        local xname=rawget(xt,"event")
+        if(xname==nil) then xname="<unknown>" end
+        error("Event " .. xname .. " does not have member:" .. xk)
+    end})
+
     return t
 end
 
