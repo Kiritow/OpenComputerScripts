@@ -91,11 +91,13 @@ end
 local cnt_now=1
 
 -- Download from the list
-for k,v in pairs(file_lst) do 
+for k,v in pairs(file_lst) do
     io.write("Updating (" .. cnt_now .. "/" .. cnt_all .. "): " .. v .. " ")
     local flag,x,y=DownloadFromOCS(v)
     if((not flag) or (y~=200) ) then
         print("[Download Failed]")
+        -- Stop if download failed.
+        break
     else
         local ret=WriteStringToFile(x,v)
         if(not ret) then
