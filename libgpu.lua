@@ -58,11 +58,11 @@ end
 
 -- API
 function GetGPU()
-    if(component.gpu==nil) then
+    if(component.list("gpu")==nil) then
         error("No GPU Found.")
     else
         local t={}
-        t.gpu=component.gpu
+        t.gpu=component.proxy(component.list("gpu")())
         t.clear=GPUClear
         t.set=GPUSet
         t.get=GPUGet
