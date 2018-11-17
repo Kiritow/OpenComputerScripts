@@ -17,6 +17,18 @@ Other useful links:
 
 ## Quick Setup
 
-Select all content of [update.lua](update.lua) and copy to clipboard. Switch to Minecraft and open any computer. Type `edit update`, then paste the code (use middle button of mouse). Save (ctrl+s) and close (ctrl+w) the editor. Then use `update` to setup basic libraries.
+Run the following command to download Script Installer:
 
-Notice that `update.lua` needs an internet card to download files.
+`wget https://raw.githubusercontent.com/Kiritow/OpenComputerScripts/master/grab.lua`
+
+or
+
+`wget http://kiritow.com:3000/Kiritow/OpenComputerScripts/raw/master/grab.lua`
+
+Then start it with:
+
+`grab` 
+
+or (install basic libraries)
+
+`grab --setup`

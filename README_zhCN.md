@@ -20,4 +20,18 @@
 
 ## 快速使用
 
-首先搭建一台带有因特网卡的电脑并启动,打开[update.lua](update.lua)并复制全部内容,到游戏中输入`edit update`打开编辑器,用鼠标中键粘贴,按Ctrl+S保存,按Ctrl+W退出编辑器.然后输入`update`后,一些基本库将会被自动下载到本地. 注意如果在`/home`目录下保存失败,可输入`cd /tmp`切换到系统临时文件夹尝试,或在硬盘上安装openos后尝试 (或者找一个可写的介质即可).
+使用以下命令下载 脚本安装器:
+
+`wget https://raw.githubusercontent.com/Kiritow/OpenComputerScripts/master/grab.lua`
+
+或者 (国内镜像)
+
+`wget http://kiritow.com:3000/Kiritow/OpenComputerScripts/raw/master/grab.lua`
+
+使用以下命令启动 脚本安装器:
+
+`grab` 
+
+或者 (将安装一些基础库)
+
+`grab --setup`
