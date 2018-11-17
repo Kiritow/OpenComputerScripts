@@ -1,25 +1,3 @@
-local drone=component.proxy(component.list("drone")())
-local network=component.proxy(component.list("tunnel")())
-
-while true do
-    local evt,_,sender,port,dist,cmd=computer.pullSignal()
-    if(evt=="modem_message") then
-        local xok,xresult=pcall(function() 
-            local ok,result=pcall(load(cmd))
-            if(ok) then 
-                network.send(result)
-            else
-                network.send("Command Execute Failed: " .. result)
-            end
-        end)
-        if(not xok) then
-            network.send("Internal Error: " .. xresult)
-        end
-    end
-end
-
-------------------------------------
-
 drone=component.proxy(component.list("drone")())
 drone.setStatusText("Drone v3.0")
 modem=component.proxy(component.list("modem")())
@@ -66,27 +44,4 @@ end
 
 while true do
     handle_event(table.pack(computer.pullSignal()))
-end
-
--------------------------
---- sleep implementation for drone
--------------------------
-
-sleep=function(sec)
-    local deadline=computer.uptime() + sec
-    while true do
-        local raw_event=table.pack(computer.pullSignal(deadline-computer.uptime()))
-        if(raw_event[1]==nil) then break
-        else handle_event(raw_event)
-        end
-    end
-end
-
-------------------------------------
--- Wireless ADS Sender (Running on Computer)
-------------------------------------
-
-while true do
-    component.modem.broadcast(101,"ads_tower","MainCity")
-    os.sleep(1)
 end
