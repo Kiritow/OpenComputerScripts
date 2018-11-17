@@ -17,7 +17,7 @@ modem.broadcast(98,'modem=component.proxy(component.list("modem")())')
 print('Done')
 
 term.clear()
-print('Drone Debug Console v1.4.1')
+print('Drone Debug Console v1.4.2')
 print('Command Prompt (Ctrl+D to exit)')
 
 local last_response=computer.uptime()
@@ -62,7 +62,7 @@ local listener=AddEventListener("modem_message",function(e)
 end)
 
 local timer=AddTimer(5,function()
-    if(computer.uptime()-last_response>15) then 
+    if(computer.uptime()-last_response>10) then 
         local a,b=term.getCursor()
 
         local w,h=term.gpu().getResolution()
@@ -75,7 +75,7 @@ local timer=AddTimer(5,function()
         term.setCursor(a,b)
     end
 
-    modem.broadcast(98,"execute_command","modem.send(" .. modem.address .. ",99,'console_info',drone.getOffset(),computer.energy())")
+    modem.broadcast(98,"execute_command","modem.send('" .. modem.address .. "',99,'console_info',drone.getOffset(),computer.energy())")
 end,-1)
 
 local history={}
