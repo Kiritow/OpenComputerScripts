@@ -9,9 +9,16 @@ if( (#args<1 and (not options["setup"])) or options["help"]) then
     print("Options:"
         .. "\n\t--cn Use mirror site in China. By default grab will download from Github."
         .. "\n\t--help Display this help page."
-        .. "\n\t--setup Download some basic files for development"
+        .. "\n\t--setup Download some basic files for development."
+        .. "\n\t--version Display version and exit."
+        .. "\n\t--proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like: "
+        ..      "function(RepoName: string, Branch: string ,FileAddress: string): string"
     )
     return 
+end
+if(options["version"]) then
+    print("Grab v1.1")
+    return
 end
 local function download(url)
     if(component.internet==nil) then
@@ -37,13 +44,28 @@ local function download(url)
     return true,result,code
 end
 local UrlGenerator
-if(not options["cn"]) then 
-    UrlGenerator=function(RepoName,Branch,FileAddress)
-        return "https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
+if(not options["proxy"]) then
+    if(not options["cn"]) then 
+        UrlGenerator=function(RepoName,Branch,FileAddress)
+            return "https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
+        end
+    else
+        UrlGenerator=function(RepoName,Branch,FileAddress)
+            return "http://kiritow.com:3000/" .. RepoName .. "/raw/" .. Branch .. "/" .. FileAddress
+        end
     end
 else
-    UrlGenerator=function(RepoName,Branch,FileAddress)
-        return "http://kiritow.com:3000/" .. RepoName .. "/raw/" .. Branch .. "/" .. FileAddress
+    local ok,err=pcall(function()
+        local f=io.open(options["proxy"],"r")
+        if(f==nil) then error("Proxy file not found") end
+        local src=f:read("a")
+        f:close()
+        local fn=load(src)
+        UrlGenerator=fn()
+    end)
+    if(not ok) then
+        print("Proxy file error: " .. err)
+        return
     end
 end
 local files
