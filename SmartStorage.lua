@@ -154,11 +154,11 @@ local function display(tb_data,tb_display,begin_at,filter)
     for i=begin_at,#tb_display,1 do
         local this_table=tb_data[tb_display[i]]
         if(filter==nil or string.len(filter)<1) then
+            gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
+        elseif(string.find(this_table.name,filter)~=nil) then
             local old=gpu.setForeground(0xFFFF00)
             gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
             gpu.setForeground(old)
-        elseif(string.find(this_table.name,filter)~=nil) then
-            gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
         end
         count_shown=count_shown+1
         if(i-begin_at+3>=h-3) then break end
