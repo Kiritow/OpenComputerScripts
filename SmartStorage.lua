@@ -7,7 +7,7 @@ local term=require('term')
 local shell=require('shell')
 require('libevent')
 
-local version_tag="Smart Storage v0.5.2"
+local version_tag="Smart Storage v0.5.3"
 
 print(version_tag)
 print("Checking hardware...")
@@ -153,7 +153,7 @@ local function display(tb_data,tb_display,begin_at,filter)
     local count_shown=0
     for i=begin_at,#tb_display,1 do
         local this_table=tb_data[tb_display[i]]
-        if(string.find(this_table,filter)~=nil) then
+        if(string.find(this_table.name,filter)~=nil) then
             gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
             count_shown=count_shown+1
         end
