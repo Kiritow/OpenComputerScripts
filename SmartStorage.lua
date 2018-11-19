@@ -142,19 +142,21 @@ local function display_single(tb_data,tb_display,which_one,display_at)
     gpu.set(1,display_at,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
 end
 
-local function display(tb_data,tb_display,begin_at)
+local function display(tb_data,tb_display,begin_at,filter)
     local w,h=gpu.getResolution()
     gpu.fill(1,1,w,h-1,' ') -- Status bar is not cleared
     gpu.set(1,1,version_tag)
     gpu.fill(1,2,w,1,'-')
     gpu.fill(1,h-2,w,1,'-')
-    gpu.set(1,h-1,"<Refresh> <Reform>")
+    gpu.set(1,h-1,"<Refresh> <Reform> <Set Filter> <Clear Filter>")
 
     local count_shown=0
     for i=begin_at,#tb_display,1 do
-        count_shown=count_shown+1
         local this_table=tb_data[tb_display[i]]
-        gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
+        if(string.find(this_table,filter)~=nil) then
+            gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
+            count_shown=count_shown+1
+        end
         if(i-begin_at+3>=h-3) then break end
     end
 
@@ -167,12 +169,14 @@ print("Smart Storage System Starting...")
 status("Scanning...")
 local result=full_scan()
 local tb_display=GetDisplayTable(result)
+local begin_at_old=1
 local begin_at=1
+local item_filter=''
 
 local need_refresh=true
 while true do
     if(need_refresh) then
-        display(result,tb_display,begin_at)
+        display(result,tb_display,begin_at,item_filter)
         need_refresh=false
     end
 
@@ -210,6 +214,24 @@ while true do
                 result=full_scan()
                 tb_display=GetDisplayTable(result)
                 begin_at=1
+
+                need_refresh=true
+            elseif(e.x<=string.len("<Refresh> <Reform> <Set Filter>")) then
+                term.setCursor(1,h-1)
+                term.clearLine()
+                io.write("Filter: ")
+                item_filter=io.read()
+                if(item_filter~=nil and string.len(item_filter)>0) then
+                    begin_at_old=begin_at
+                    begin_at=1
+                else
+                    begin_at=begin_at_old
+                end
+                
+                need_refresh=true
+            elseif(e.x<=string.len("<Refresh> <Reform> <Set Filter> <Clear Filter>")) then
+                item_filter=''
+                begin_at=begin_at_old
 
                 need_refresh=true
             end
