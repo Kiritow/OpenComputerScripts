@@ -7,7 +7,7 @@ local term=require('term')
 local shell=require('shell')
 require('libevent')
 
-local version_tag="Smart Storage v0.5.1"
+local version_tag="Smart Storage v0.5.2"
 
 print(version_tag)
 print("Checking hardware...")
@@ -118,7 +118,9 @@ end
 local function GetDisplayTable(result)
     local keys={}
     for k,v in pairs(result) do
-        table.insert(keys,k)
+        if(k~="slot_used" and k~="slot_total") then 
+            table.insert(keys,k)
+        end
     end
     table.sort(keys)
     return keys
@@ -161,7 +163,7 @@ local function display(tb_data,tb_display,begin_at)
 end
 
 term.clear()
-print("Smart Storage System Initializing...")
+print("Smart Storage System Starting...")
 status("Scanning...")
 local result=full_scan()
 local tb_display=GetDisplayTable(result)
