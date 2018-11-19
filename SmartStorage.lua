@@ -7,7 +7,7 @@ local term=require('term')
 local shell=require('shell')
 require('libevent')
 
-local version_tag="Smart Storage v0.5.6"
+local version_tag="Smart Storage v0.5.7"
 
 print(version_tag)
 print("Checking hardware...")
@@ -126,6 +126,17 @@ local function GetDisplayTable(result)
     return keys
 end
 
+local function GetDisplayTableFiltered(result,filter)
+    local keys={}
+    for k,v in pairs(result) do 
+        if(k~="slot_used" and k~="slot_total" and string.find(k,filter)~=nil) then
+            table.insert(keys,k)
+        end
+    end
+    table.sort(keys)
+    return keys
+end
+
 --[[ Display Design
 1: Smart Storage (version info etc.)
 2: ------------ (window title here) ------------
@@ -173,11 +184,11 @@ print("Smart Storage System Starting...")
 status("Scanning...")
 local result=full_scan()
 local tb_display=GetDisplayTable(result)
-local begin_at_old=1
 local begin_at=1
 local item_filter=''
 
 local need_refresh=true
+
 while true do
     if(need_refresh) then
         display(result,tb_display,begin_at,item_filter)
@@ -239,19 +250,22 @@ while true do
                 term.clearLine()
                 io.write("Filter: ")
                 item_filter=io.read()
+
                 if(item_filter~=nil and string.len(item_filter)>0) then
-                    begin_at_old=begin_at
+                    tb_display=GetDisplayTableFiltered(result,item_filter)
                     begin_at=1
-                else
-                    begin_at=begin_at_old
                 end
-                
-                need_refresh=true
-            elseif(e.x<=string.len("<Refresh> <Reform> <Set Filter> <Clear Filter>")) then
-                item_filter=''
-                begin_at=begin_at_old
 
                 need_refresh=true
+            elseif(e.x<=string.len("<Refresh> <Reform> <Set Filter> <Clear Filter>")) then
+                if(item_filter~=nil and string.len(item_filter)>0) then
+                    item_filter=''
+
+                    tb_display=GetDisplayTable(result)
+                    begin_at=1
+
+                    need_refresh=true
+                end
             end
         elseif(e.y>=3 and e.y<=h-3) then
             if(begin_at+e.y-3<=#tb_display) then
