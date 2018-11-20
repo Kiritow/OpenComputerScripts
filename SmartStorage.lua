@@ -5,9 +5,11 @@ local component=require('component')
 local sides=require('sides')
 local term=require('term')
 local shell=require('shell')
+local serialization=require('serialization')
+
 require('libevent')
 
-local version_tag="Smart Storage v0.5.7"
+local version_tag="Smart Storage v0.5.8"
 
 print(version_tag)
 print("Checking hardware...")
@@ -25,8 +27,12 @@ modem.open(1001)
 -- Computer --1000--> robot, robot --1001--> Computer
 modem.broadcast(1000,"find_crafting_robot")
 while true do 
-    local e=WaitEvent("modem_message")
-    if(e.port==1001 and e.data[1]=="crafting_robot_response") then 
+    local e=WaitEvent(5,"modem_message")
+    if(e==nil) then 
+        print("Unable to find robot in 5 seconds. Failed to start")
+        modem.close(1001)
+        return 
+    elseif(e.port==1001 and e.data[1]=="crafting_robot_response") then 
         print("Found crafting robot: " .. e.senderAddress)
         robotAddr=e.senderAddress
         break
@@ -153,35 +159,49 @@ local function display_single(tb_data,tb_display,which_one,display_at)
     gpu.set(1,display_at,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
 end
 
-local function display(tb_data,tb_display,begin_at,filter)
+local function display(tb_data,tb_display,tb_craft,begin_at,filter)
     local w,h=gpu.getResolution()
     gpu.fill(1,1,w,h-1,' ') -- Status bar is not cleared
     gpu.set(1,1,version_tag)
     gpu.fill(1,2,w,1,'-')
     gpu.fill(1,h-2,w,1,'-')
-    gpu.set(1,h-1,"<Refresh> <Reform> <Set Filter> <Clear Filter>")
+    gpu.set(1,h-1,"<Refresh> <Reform> <Set Filter> <Clear Filter> <Read recipe>")
 
     local count_shown=0
     for i=begin_at,#tb_display,1 do
         local this_table=tb_data[tb_display[i]]
+
+        local old_f=nil
+        local old_b=nil
+
         if(filter~=nil and string.len(filter)>0 and string.find(this_table.name,filter)~=nil) then
-            local old=gpu.setForeground(0xFFFF00)
-            gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
-            gpu.setForeground(old)
-        else
-            gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
+            old_f=gpu.setForeground(0xFFFF00)
         end
+        if(tb_craft[tb_display[i]]~=nil) then
+            old_b=gpu.setBackground(0x0000FF)
+        end
+        
+        gpu.set(1,i-begin_at+3,this_table.name .. " -- " .. this_table.label .. " (" .. this_table.total .. ")")
+
+        if(old_f) then gpu.setForeground(old_f) end
+        if(old_b) then gpu.setBackground(old_b) end
+
         count_shown=count_shown+1
         if(i-begin_at+3>=h-3) then break end
     end
 
-    gpu.set(4,2," Viewing " .. begin_at .. "~" .. begin_at+count_shown .. " of " .. #tb_display .. " ")
+    if(filter~=nil and string.len(filter)>0) then
+        gpu.set(4,2," Viewing " .. begin_at .. "~" .. begin_at+count_shown .. " of " .. #tb_display .. ". Filter: " .. filter)
+    else
+        gpu.set(4,2," Viewing " .. begin_at .. "~" .. begin_at+count_shown .. " of " .. #tb_display .. ". ")
+    end
     gpu.set(4,h-2," Space used: " .. math.floor(tb_data.slot_used/tb_data.slot_total*1000)/10 .. "% (" .. tb_data.slot_used .. "/" .. tb_data.slot_total ..") ")
 end
 
 term.clear()
 print("Smart Storage System Starting...")
 status("Scanning...")
+local craft_table={}
 local result=full_scan()
 local tb_display=GetDisplayTable(result)
 local begin_at=1
@@ -266,57 +286,104 @@ while true do
 
                     need_refresh=true
                 end
+            elseif(e.x<=string.len("<Refresh> <Reform> <Set Filter> <Clear Filter> <Read recipe>")) then
+                status("Connecting to robot...")
+                modem.send(robotAddr,1000,"read_craft_table")
+                local newRecipe=nil
+                while true do 
+                    local e=WaitEvent(5,"modem_message")
+                    if(e==nil) then
+                        status("No response from robot. Failed to read recipe")
+                        break
+                    elseif(e.port==1001 and e.senderAddress==robotAddr and e.data[1]=="craft_table") then 
+                        status("Got craft table from robot")
+                        newRecipe=serialization.unserialize(e.data[2])
+                        break
+                    end
+                end
+                if(newRecipe) then
+                    --[[ Example recipe table
+                        newRecipe={
+                            to={
+                                id= "Item XID of chest",
+                                size=1
+                            },
+                            from={
+                                { -- slot 1
+                                    id= " Item XID of wood ",
+                                    size=1
+                                }, 
+                                ... repeat 3 times, (slot 2~4)
+                                nil, -- empty in slot 5
+                                { -- slot 6
+                                    id= " Item XID of wood ",
+                                    size=1
+                                },
+                                ... repeat 3 times, (slot 6~9)
+                            }
+                        }
+                    --]]
+                    if(not craft_table[newRecipe.to.id]) then
+                        craft_table[newRecipe.to.id]={}
+                    end
+                    table.insert(craft_table[newRecipe.to.id],{size=newRecipe.to.size,from=newRecipe.from})
+                    status("New recipe added")
+                end
             end
         elseif(e.y>=3 and e.y<=h-3) then
             if(begin_at+e.y-3<=#tb_display) then
-                need_refresh=true
+                if(e.button==0) then -- Left click
+                    need_refresh=true
 
-                local this_table=result[tb_display[begin_at+e.y-3]]
-                term.setCursor(1,h-1)
-                term.clearLine()
-                io.write('[' .. this_table.name .. " -- " .. this_table.label .. "]. How many? (" .. this_table.total .. "): ")
-                local n=io.read('n')
-                if(not n or n>this_table.total) then 
-                    status("Invalid input.")
-                else
-                    status("Transfer begins.")
-                    local fetched=0
-                    for idx,this_info in ipairs(this_table.position) do
-                        local this_trans=component.proxy(this_info.addr)
-                        local need=0
-                        if(this_info.size>n-fetched) then
-                            need=n-fetched
-                        else
-                            need=this_info.size
+                    local this_table=result[tb_display[begin_at+e.y-3]]
+                    term.setCursor(1,h-1)
+                    term.clearLine()
+                    io.write('[' .. this_table.name .. " -- " .. this_table.label .. "]. How many? (" .. this_table.total .. "): ")
+                    local n=io.read('n')
+                    if(not n or n>this_table.total) then 
+                        status("Invalid input.")
+                    else
+                        status("Transfer begins.")
+                        local fetched=0
+                        for idx,this_info in ipairs(this_table.position) do
+                            local this_trans=component.proxy(this_info.addr)
+                            local need=0
+                            if(this_info.size>n-fetched) then
+                                need=n-fetched
+                            else
+                                need=this_info.size
+                            end
+                            local done=this_trans.transferItem(this_info.side,sides.down,need,this_info.slot)
+                            fetched=fetched+done
+                            this_info.size=this_info.size-done
+                            this_table.total=this_table.total-done
+                            if(fetched>=n) then break end
+                            status("[Working] " .. fetched .. " of " .. n .. " items transferred.")
                         end
-                        local done=this_trans.transferItem(this_info.side,sides.down,need,this_info.slot)
-                        fetched=fetched+done
-                        this_info.size=this_info.size-done
-                        this_table.total=this_table.total-done
-                        if(fetched>=n) then break end
-                        status("" .. fetched .. " of " .. n .. " items transferred.")
-                    end
 
-                    -- Update storage info
-                    local idx=1
-                    while(idx<=#this_table.position) do
-                        if(this_table.position[idx].size<=0) then
-                            table.remove(this_table.position,idx)
-                            result.slot_used=result.slot_used-1
-                        else
-                            idx=idx+1
+                        -- Update storage info
+                        local idx=1
+                        while(idx<=#this_table.position) do
+                            if(this_table.position[idx].size<=0) then
+                                table.remove(this_table.position,idx)
+                                result.slot_used=result.slot_used-1
+                            else
+                                idx=idx+1
+                            end
                         end
-                    end
-                    if(this_table.total<1) then
-                        result[tb_display[begin_at+e.y-3]]=nil -- Remove this type
-                        table.remove(tb_display,begin_at+e.y-3)
+                        if(this_table.total<1) then
+                            result[tb_display[begin_at+e.y-3]]=nil -- Remove this type
+                            table.remove(tb_display,begin_at+e.y-3)
 
-                        if(begin_at>1) then
-                            begin_at=begin_at-1
+                            if(begin_at>1) then
+                                begin_at=begin_at-1
+                            end
                         end
-                    end
 
-                    status("" .. n .. " items transferred")
+                        status("[Done] " .. fetched .. " of " .. n .. " items transferred") -- Sometimes (ex: output box is full) not all items can be transferred.
+                    end
+                elseif(e.button==1) then -- Right click
+
                 end
             end
         end
