@@ -9,7 +9,7 @@ local serialization=require('serialization')
 
 require('libevent')
 
-local version_tag="Smart Storage v0.5.8"
+local version_tag="Smart Storage v0.5.9"
 
 print(version_tag)
 print("Checking hardware...")
@@ -20,6 +20,15 @@ if(not modem or not gpu) then
     return
 end
 print("Reading config...")
+print("Please input IO transposer address:")
+local io_trans_addr=io.read()
+print("Sides value: up:" .. sides.up .. " down:" .. sides.down .. " north:" .. sides.north .. " south:" .. sides.south .. " west:" .. sides.west .. " east:" .. sides.east)
+print("Please input IO transposer input side:")
+local io_trans_input_side=io.read("n")
+print("Please input IO transposer output side:")
+local io_trans_output_side=io.read("n")
+print("Please input IO transposer buffer side:")
+local io_trans_buffer_side=io.read("n")
 
 print("Checking robot...")
 local robotAddr=''
@@ -49,7 +58,11 @@ end
 local function do_reform()
     local total=0
     local all_sides={sides.north,sides.south,sides.west,sides.east}
-    for addr in pairs(component.list("transposer")) do
+
+    local temp_transposers=component.list("transposer")
+    temp_transposers[io_trans_addr]=nil
+
+    for addr in pairs(temp_transposers) do
         local this_trans=component.proxy(addr)
         for idx,this_side in ipairs(all_sides) do
             if(this_trans.getInventoryName(this_side)) then
@@ -77,7 +90,10 @@ local function full_scan()
     local count_transposer=0
     local count_box=0
 
-    for addr in pairs(component.list("transposer")) do
+    local temp_transposers=component.list("transposer")
+    temp_transposers[io_trans_addr]=nil
+
+    for addr in pairs(temp_transposers) do
         local this_trans=component.proxy(addr)
         for idx,this_side in ipairs(all_sides) do
             local this_box=this_trans.getAllStacks(this_side)
@@ -287,48 +303,58 @@ while true do
                     need_refresh=true
                 end
             elseif(e.x<=string.len("<Refresh> <Reform> <Set Filter> <Clear Filter> <Read recipe>")) then
-                status("Connecting to robot...")
-                modem.send(robotAddr,1000,"read_craft_table")
-                local newRecipe=nil
-                while true do 
-                    local e=WaitEvent(5,"modem_message")
-                    if(e==nil) then
-                        status("No response from robot. Failed to read recipe")
-                        break
-                    elseif(e.port==1001 and e.senderAddress==robotAddr and e.data[1]=="craft_table") then 
-                        status("Got craft table from robot")
-                        newRecipe=serialization.unserialize(e.data[2])
-                        break
-                    end
-                end
-                if(newRecipe) then
-                    --[[ Example recipe table
-                        newRecipe={
-                            to={
-                                id= "Item XID of chest",
+                status("Reading recipe from buffer chest...")
+                --[[ Example recipe table
+                    newRecipe={
+                        to={
+                            id= "Item XID of chest",
+                            size=1
+                        },
+                        from={
+                            { -- slot 1
+                                id= " Item XID of wood ",
+                                size=1
+                            }, 
+                            ... repeat 3 times, (slot 2~4)
+                            nil, -- empty in slot 5
+                            { -- slot 6
+                                id= " Item XID of wood ",
                                 size=1
                             },
-                            from={
-                                { -- slot 1
-                                    id= " Item XID of wood ",
-                                    size=1
-                                }, 
-                                ... repeat 3 times, (slot 2~4)
-                                nil, -- empty in slot 5
-                                { -- slot 6
-                                    id= " Item XID of wood ",
-                                    size=1
-                                },
-                                ... repeat 3 times, (slot 6~9)
-                            }
+                            ... repeat 3 times, (slot 6~9)
                         }
-                    --]]
-                    if(not craft_table[newRecipe.to.id]) then
-                        craft_table[newRecipe.to.id]={}
+                    }
+                --]]
+                local newRecipe={
+                    from={},
+                    to={}
+                }
+                
+                local io_trans=component.proxy(io_trans_addr)
+                local temp=io_trans.getStackInSlot(io_trans_buffer_side,14)
+                if(temp==nil or temp.size==nil) then
+                    status("Recipe invalid: no craft result")
+                else
+                    newRecipe.to.id=getItemXID(temp.name,temp.label)
+                    newRecipe.to.size=temp.size
+                    
+                    local from_slots={1,2,3,10,11,12,19,20,21}
+                    for idx,from_slot in ipairs(from_slots) do
+                        temp=io_trans.getStackInSlot(io_trans_buffer_side,from_slot)
+                        if(temp~=nil or temp.size~=nil) then
+                            newRecipe.from[idx]={
+                                id=getItemXID(temp.name,temp.label)
+                                size=temp.size
+                            }
+                        end
                     end
-                    table.insert(craft_table[newRecipe.to.id],{size=newRecipe.to.size,from=newRecipe.from})
-                    status("New recipe added")
                 end
+
+                if(not craft_table[newRecipe.to.id]) then
+                    craft_table[newRecipe.to.id]={}
+                end
+                table.insert(craft_table[newRecipe.to.id],{size=newRecipe.to.size,from=newRecipe.from})
+                status("New recipe added")
             end
         elseif(e.y>=3 and e.y<=h-3) then
             if(begin_at+e.y-3<=#tb_display) then
