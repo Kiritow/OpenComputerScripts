@@ -9,9 +9,21 @@ local serialization=require('serialization')
 
 require('libevent')
 
-local version_tag="Smart Storage v0.6.1-dbg"
+local version_tag="Smart Storage v0.6.3-dbg"
+local args,options=shell.parse(...)
 
 print(version_tag)
+
+if(options["version"]) then
+    -- Version tag has been displayed.
+    return
+elseif(options["help"] or options["h"]) then
+    print("Smart Storage Manual")
+    print("-- To be continued...")
+
+    return
+end
+
 print("Checking hardware...")
 local modem=component.modem
 local gpu=component.gpu
@@ -214,7 +226,7 @@ local function display(tb_data,tb_display,tb_craft,begin_at,filter)
     gpu.set(4,h-2," Space used: " .. math.floor(tb_data.slot_used/tb_data.slot_total*1000)/10 .. "% (" .. tb_data.slot_used .. "/" .. tb_data.slot_total ..") ")
 end
 
-local function SystemGetItem(tb_data,request_key,request_amount)
+local function SystemGetItem(tb_data,tb_display,request_key,request_amount)
     local fetched=0
     local this_table=tb_data[request_key]
     for idx,this_info in ipairs(this_table.position) do
@@ -244,8 +256,13 @@ local function SystemGetItem(tb_data,request_key,request_amount)
         end
     end
     if(this_table.total<1) then
-        result[tb_display[begin_at+e.y-3]]=nil -- Remove this type
-        table.remove(tb_display,begin_at+e.y-3)
+        tb_data[request_key]=nil -- Remove this type
+        for idx,value in ipairs(tb_display) do
+            if(tb_display[idx]==request_key) then
+                table.remove(tb_display,idx)
+                break 
+            end
+        end
 
         if(begin_at>1) then
             begin_at=begin_at-1
@@ -385,7 +402,7 @@ while true do
                     local from_slots={1,2,3,10,11,12,19,20,21}
                     for idx,from_slot in ipairs(from_slots) do
                         temp=io_trans.getStackInSlot(io_trans_buffer_side,from_slot)
-                        if(temp~=nil or temp.size~=nil) then
+                        if(temp~=nil and temp.size~=nil) then
                             newRecipe.from[idx]={
                                 id=getItemXID(temp.name,temp.label),
                                 size=temp.size
@@ -434,7 +451,7 @@ while true do
                     else
                         status("Transfer begins.")
 
-                        SystemGetItem(result,tb_display[begin_at+e.y-3],n)
+                        SystemGetItem(result,tb_display,tb_display[begin_at+e.y-3],n)
                     end
                 elseif(e.button==1) then -- Right click
                     if(craft_table[tb_display[begin_at+e.y-3]]==nil) then
@@ -481,7 +498,7 @@ while true do
                             local io_trans=component.proxy(io_trans_addr)
 
                             for idx,this_slot in pairs(follow_recipe.from) do 
-                                local ans=SystemGetItem(result,this_slot.id,this_slot.size)
+                                local ans=SystemGetItem(result,tb_display,this_slot.id,this_slot.size)
                                 if(ans~=this_slot.size) then 
                                     flag_done=false
                                     break
@@ -498,9 +515,13 @@ while true do
                                     if(follow_recipe.from[i]) then
                                         status("[Working] Gathering item for slot " .. i .. "...")
                                         local which_slot=0
-                                        while which_slot<1 do
-                                            for j=1,io_trans.getInventorySize(io_trans_output_side),1 do
-                                                local this_info=io_trans.getStackInSlot(io_trans_output_side,j)
+                                        while true do
+                                            local j=0
+                                            local this_slots=io_trans.getAllStacks(io_trans_output_side)
+                                            while true do
+                                                local this_info=this_slots()
+                                                if(this_info==nil) then break end
+                                                j=j+1
                                                 if(this_info~=nil and this_info.size~=nil and 
                                                     (getItemXID(this_info.name,this_info.label)==follow_recipe.from[i].id) and
                                                     (this_info.size>=follow_recipe.from[i].size)
@@ -510,6 +531,7 @@ while true do
                                                 end
                                             end
 
+                                            if(which_slot>0) then break end
                                             status("[Working] Waiting item for slot " .. i .. "...")
                                         end
                                         io_trans.transferItem(io_trans_output_side,io_trans_buffer_side,follow_recipe.from[i].size,which_slot,target_slot[i])
