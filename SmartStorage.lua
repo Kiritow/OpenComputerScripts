@@ -211,7 +211,7 @@ local need_refresh=true
 
 while true do
     if(need_refresh) then
-        display(result,tb_display,begin_at,item_filter)
+        display(result,tb_display,craft_table,begin_at,item_filter)
         need_refresh=false
     end
 

@@ -223,8 +223,12 @@ local function doInternalEventInit()
 end
 
 local function TranslateEvent(raw_event)
+    if(raw_event==nil) then return nil end
+
     local t={}
     local name=raw_event[1]
+    if(name==nil) then return nil end
+
     t["event"]=name
 
     -- Standard Events
