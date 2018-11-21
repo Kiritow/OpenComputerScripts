@@ -174,7 +174,7 @@ if(args[1]=="install") then
         local to_add={}
         for this_lib in pairs(to_install) do
             if(not db[this_lib]) then
-                print("Library " .. this_lib .. " not found.")
+                print("Library '" .. this_lib .. "' not found.")
                 return
             else
                 if(db[this_lib].requires) then
@@ -226,8 +226,10 @@ if(args[1]=="install") then
             local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master",toDownload))
             if(not ok) then 
                 print("[Download Failed] " .. result)
+                return
             elseif(code~=200) then
                 print("[Download Failed] response code " .. code .. " is not 200.")
+                return 
             else
                 if(type(v)=="string") then
                     local f=io.open(v,"w")

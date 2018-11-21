@@ -7,7 +7,7 @@
         }
     },
     ["checkarg"]={
-        title="Check Arugment",
+        title="Arugment Checker",
         info="For easier argument checking",
         files={
             "checkarg.lua"
@@ -21,6 +21,30 @@
         },
         requires={
             "checkarg"
+        }
+    },
+    ["libgpu"]={
+        title="LibGPU",
+        info="For easier gpu programming",
+        files={
+            "libgpu.lua"
+        }
+    },
+    ["simple_data_structure"]={
+        title="Simple Lua Data Structure",
+        info="Provides class(...),queue and vector",
+        files={
+            "class.lua", "queue.lua", "vector.lua"
+        }
+    }
+    ["minesweeper"]={
+        title="Mine Sweeper",
+        info="A simple game",
+        files={
+            "MineSweeper.lua"
+        },
+        requires={
+            "libgpu","libevent","simple_data_structure"
         }
     },
     ["drone"]={
