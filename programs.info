@@ -46,7 +46,7 @@
         info="Smart Storage",
         author="Kiritow",
         files={
-            SmartStorage.lua
+            "SmartStorage.lua"
         },
         requires={
             "libevent"
