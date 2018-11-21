@@ -1,5 +1,6 @@
 -- Grab : OpenComputerScripts Installer
 -- Created By Kiritow
+local computer=require('computer')
 local component=require('component')
 local shell=require('shell')
 local filesystem=require('filesystem')
@@ -8,7 +9,7 @@ local args,options=shell.parse(...)
 local nOptions=0
 for k,v in pairs(options) do nOptions=nOptions+1 end
 if( (#args<1 and nOptions<1) or options["help"]) then
-    print("Grab : OpenComputerScripts Installer")
+    print("Grab - Official OpenComputerScripts Installer")
     print("Usage:\n\tgrab [<options>] <command> [<projects>]")
     print("Options:"
         .. "\n\t--cn Use mirror site in China. By default grab will download from Github."
@@ -23,7 +24,7 @@ if( (#args<1 and nOptions<1) or options["help"]) then
     return 
 end
 if(options["version"]) then
-    print("Grab v2.0-alpha")
+    print("Grab v2.0-beta")
     return
 end
 local function download(url)
@@ -208,6 +209,8 @@ if(args[1]=="install") then
     end
     print("\n" .. count_libs .. " libraries will be installed. " .. count_files .. " will be downloaded.")
 
+    local time_before=computer.uptime()
+
     print("Downloading...")
     local id_installing=1
     for this_lib in pairs(to_install) do
@@ -261,7 +264,7 @@ if(args[1]=="install") then
         end
     end
 
-    print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
+    print("Installed " .. count_libs .. " libraies with " .. count_files .. " files in " .. computer.uptime()-time_before .. " seconds.")
     return
 end
 

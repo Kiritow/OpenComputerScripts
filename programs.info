@@ -36,7 +36,7 @@
         files={
             "class.lua", "queue.lua", "vector.lua"
         }
-    }
+    },
     ["minesweeper"]={
         title="Mine Sweeper",
         info="A simple game",
