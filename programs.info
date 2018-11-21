@@ -1,0 +1,55 @@
+{
+    {
+        name="grab",
+        title="Grab",
+        info="Grab - Official OpenComputerScripts Installer",
+        files={
+            "grab.lua"
+        }
+    },
+    {
+        name="checkarg",
+        title="Check Arugment",
+        info="For easier argument checking",
+        files={
+            "checkarg.lua"
+        }
+    },
+    {
+        name="libevent",
+        title="LibEvent",
+        info="For easier event processing",
+        files={
+            "libevent.lua"
+        },
+        requires={
+            "checkarg"
+        }
+    },
+    {
+        name="drone",
+        title="Drone",
+        info="Drone console and bios",
+        author="Kiritow",
+        contact="1362060620@qq.com",
+        files={
+            "drone_bios.lua",
+            "drone_console.lua"
+        },
+        requires={
+            "libevent"
+        }
+    },
+    {
+        name="smartstorage",
+        title="Smart Storage",
+        info="Smart Storage",
+        author="Kiritow",
+        files={
+            SmartStorage.lua
+        },
+        requires={
+            "libevent"
+        }
+    }
+}
