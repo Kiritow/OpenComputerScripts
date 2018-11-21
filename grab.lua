@@ -24,7 +24,7 @@ if( (#args<1 and nOptions<1) or options["help"]) then
     return 
 end
 if(options["version"]) then
-    print("Grab v2.0-beta")
+    print("Grab v2.0-beta-rv3")
     return
 end
 local function download(url)
@@ -200,6 +200,7 @@ if(args[1]=="install") then
     print("About to install the following libraries...")
     local count_libs=0
     local count_files=0
+    io.write("\t")
     for this_lib in pairs(to_install) do
         io.write(this_lib .. " ")
         count_libs=count_libs+1
@@ -207,14 +208,16 @@ if(args[1]=="install") then
             count_files=count_files+1
         end
     end
-    print("\n" .. count_libs .. " libraries will be installed. " .. count_files .. " will be downloaded.")
+    print("\n" .. count_libs .. " libraries will be installed. " .. count_files .. " files will be downloaded.")
 
     local time_before=computer.uptime()
 
     print("Downloading...")
-    local id_installing=1
+    local id_installing=0
     for this_lib in pairs(to_install) do
         for k,v in ipairs(db[this_lib].files) do
+            id_installing=id_installing+1
+
             local toDownload
             if(type(k)=="number" and type(v)=="string") then
                 toDownload=v
@@ -263,8 +266,10 @@ if(args[1]=="install") then
             end
         end
     end
+    print("Fetched " .. count_files .. " files in " .. math.floor(computer.uptime()-time_before) .. " seconds.")
+    print("Installing...")
 
-    print("Installed " .. count_libs .. " libraies with " .. count_files .. " files in " .. computer.uptime()-time_before .. " seconds.")
+    print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
     return
 end
 
