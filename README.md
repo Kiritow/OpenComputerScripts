@@ -28,7 +28,3 @@ or
 Then start it with:
 
 `grab` 
-
-or (install basic libraries)
-
-`grab --setup`
