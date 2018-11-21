@@ -223,7 +223,7 @@ if(args[1]=="install") then
             end
 
             io.write("[" .. id_installing .. "/" .. count_files .. "] Downloading " .. toDownload .. " for " .. this_lib .. "... ")
-            local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master",filename))
+            local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master",toDownload))
             if(not ok) then 
                 print("[Download Failed] " .. result)
             elseif(code~=200) then
@@ -265,8 +265,8 @@ end
 
 if(args[1]=="list") then
     print("Listing projects...")
-    for idx,tb in pairs(db) do
-        print(tb.name)
+    for this_lib in pairs(db) do
+        print(this_lib)
     end
 
     return
