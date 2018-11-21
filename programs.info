@@ -1,22 +1,19 @@
 {
-    {
-        name="grab",
+    ["grab"]={
         title="Grab",
         info="Grab - Official OpenComputerScripts Installer",
         files={
             "grab.lua"
         }
     },
-    {
-        name="checkarg",
+    ["checkarg"]={
         title="Check Arugment",
         info="For easier argument checking",
         files={
             "checkarg.lua"
         }
     },
-    {
-        name="libevent",
+    ["libevent"]={
         title="LibEvent",
         info="For easier event processing",
         files={
@@ -26,8 +23,7 @@
             "checkarg"
         }
     },
-    {
-        name="drone",
+    ["drone"]={
         title="Drone",
         info="Drone console and bios",
         author="Kiritow",
@@ -40,8 +36,7 @@
             "libevent"
         }
     },
-    {
-        name="smartstorage",
+    ["smartstorage"]={
         title="Smart Storage",
         info="Smart Storage",
         author="Kiritow",
