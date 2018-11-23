@@ -1,4 +1,4 @@
--- Grab : OpenComputerScripts Installer
+-- Grab : Official OpenComputerScripts Installer
 -- Created By Kiritow
 local computer=require('computer')
 local component=require('component')
@@ -6,27 +6,63 @@ local shell=require('shell')
 local filesystem=require('filesystem')
 local serialization=require('serialization')
 local args,options=shell.parse(...)
+
+local grab_version="Grab v2.1-beta"
+
+local valid_options={
+    ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true
+}
+local valid_command={
+    ["install"]=true,["update"]=true,["list"]=true,["download"]=true
+}
+
 local nOptions=0
-for k,v in pairs(options) do nOptions=nOptions+1 end
-if( (#args<1 and nOptions<1) or options["help"]) then
-    print("Grab - Official OpenComputerScripts Installer")
-    print("Usage:\n\tgrab [<options>] <command> [<projects>]")
-    print("Options:"
-        .. "\n\t--cn Use mirror site in China. By default grab will download from Github."
-        .. "\n\t--help Display this help page."
-        .. "\n\t--version Display version and exit."
-        .. "\n\t--proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like: "
-        ..      "function(RepoName: string, Branch: string ,FileAddress: string): string"
-    )
-    print("Command:"
-        .. "\n\tinstall, list, update"
-    )
-    return 
+for k,v in pairs(options) do 
+    if(not valid_options[k]) then 
+        if(string.len(k)>1) then print("Unknown option: --" .. k)
+        else print("Unknown option: -" .. k) end
+        return
+    end
+    nOptions=nOptions+1 
 end
-if(options["version"]) then
-    print("Grab v2.0-beta-rv3")
+
+local function show_usage()
+    print([===[Grab - Official OpenComputerScripts Installer
+Usage:
+    grab [<options>] <command> ...
+Options:
+    --cn Use mirror site in China. By default grab will download from Github.
+    --help Display this help page."
+    --version Display version and exit."
+    --proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like: "
+        function(RepoName: string, Branch: string ,FileAddress: string): string"
+Command:
+    install <Project> ...: Install projects. Dependency will be downloaded automatically.
+    update: Update program info.
+    list: List available projects.
+    download <Filename> ...: Directly download files. (Just like the old `update`!)
+]===])
+end
+
+local function check_internet()
+    if(component.internet==nil) then
+        print("Error: An internet card is required to run this program.")
+        return false
+    else
+        return true
+    end
+end
+
+if( (#args<1 and nOptions<1) or options["help"]) then
+    show_usage()
     return
 end
+
+if(options["version"]) then
+    print(grab_version)
+    return
+end
+
 local function download(url)
     if(component.internet==nil) then
         error("This program requires an Internet card.")
@@ -125,6 +161,8 @@ local function CreateDB(tb,is_raw)
 end
 
 if(args[1]=="update") then
+    if(not check_internet()) then return end
+
     print("Updating programs info....")
     io.write("Downloading... ")
     local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master","programs.info"))
@@ -162,6 +200,8 @@ if(args[1]=="install") then
         print("Nothing to install.")
         return
     else
+        if(not check_internet()) then return end
+
         print("Checking programs info...")
     end
 
@@ -282,5 +322,46 @@ if(args[1]=="list") then
     return
 end
 
+if(args[1]=="download") then
+    if(#args<2) then
+        print("Nothing to download.")
+        return
+    else
+        if(not check_internet()) then return end
+        print("Collecting files...")
+    end
+
+    local files={}
+    for i=2,#args,1 do 
+        table.insert(files,args[i])
+    end
+
+    for i=1,#files,1 do
+        io.write("[" .. i .. "/" .. #files .. "] Downloading " .. files[i] .. "...")
+        local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master",files[i]))
+        if(not ok) then 
+            print("[Download Failed] " .. result)
+            return
+        elseif(code~=200) then
+            print("[Download Failed] response code " .. code .. " is not 200.")
+            return 
+        else
+            local f,ferr=io.open(files[i],"w")
+            if(not f) then
+                print("[Write Failed] Unable to write. Error:" .. ferr)
+            else
+                f:write(result)
+                f:close()
+                print("[OK]")
+            end
+        end
+    end
+end
+
+
 -- reach here? 
-print("Invalid argument 1: " .. args[1])
+if(#args<1) then
+    show_usage()
+else
+    print("Unknown command: " .. args[1])
+end
