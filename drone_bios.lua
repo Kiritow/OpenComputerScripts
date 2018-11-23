@@ -1,6 +1,7 @@
 drone=component.proxy(component.list("drone")())
-drone.setStatusText("Drone v3.0")
 modem=component.proxy(component.list("modem")())
+drone_version="Drone v3.1"
+drone.setStatusText(drone_version .. '\n' .. modem.address)
 modem.open(98)
 handlers={}
 handlers["modem_message"]={}
@@ -26,19 +27,22 @@ end)
 handle_event=function(raw_event)
     if(handlers[raw_event[1]]~=nil) then
         for idx,callback in ipairs(handlers[raw_event[1]]) do
-            pcall(function()
+            local ok,result=pcall(function()
                 callback(raw_event)
             end)
+            if(ok and result) then break end
         end
     end
 end
 sleep=function(sec)
-    local deadline=computer.uptime() + sec
+    local current=computer.uptime()
+    local deadline=current + sec
     while true do
-        local raw_event=table.pack(computer.pullSignal(deadline-computer.uptime()))
+        local raw_event=table.pack(computer.pullSignal(deadline-current))
         if(raw_event[1]==nil) then break
-        else handle_event(raw_event)
-        end
+        else handle_event(raw_event) end
+        current=computer.uptime()
+        if(current<dealine) then break end
     end
 end
 
