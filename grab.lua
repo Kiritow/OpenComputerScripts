@@ -7,13 +7,13 @@ local filesystem=require('filesystem')
 local serialization=require('serialization')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.1-beta"
+local grab_version="Grab v2.2-alpha"
 
 local valid_options={
-    ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true
+    ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
 }
 local valid_command={
-    ["install"]=true,["update"]=true,["list"]=true,["download"]=true
+    ["install"]=true,["update"]=true,["list"]=true,["show"]=true,["download"]=true
 }
 
 local nOptions=0
@@ -36,10 +36,12 @@ Options:
     --version Display version and exit."
     --proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like: "
         function(RepoName: string, Branch: string ,FileAddress: string): string"
+    --skip_install Library installers will not be executed.
 Command:
     install <Project> ...: Install projects. Dependency will be downloaded automatically.
     update: Update program info.
     list: List available projects.
+    show <Project> : Show more info about project.
     download <Filename> ...: Directly download files. (Just like the old `update`!)
 ]===])
 end
@@ -74,6 +76,12 @@ local function download(url)
             return false,err
         elseif(ret==true) then 
             break 
+        else
+            local ev=event.pull(0.5,"interrupted")
+            if(ev~=nil) then 
+                handle.close()
+                return false,"Interrupted from terminal."
+            end
         end
     end
     local code=handle.response()
@@ -125,36 +133,57 @@ local function CheckAndLoad(raw_content)
     return nil,err
 end
 
-local function ReadDB()
-    for idx,filename in ipairs(db_positions) do 
-        local f=io.open(filename,"r")
+local function ReadDB(read_from_this)
+    if(read_from_this) then
+        local f=io.open(read_from_this,"r")
         if(f) then
             local result=serialization.unserialize(f:read("*a"))
             f:close()
             return result,filename
+        else
+            return nil
         end
     end
+
+    for idx,filename in ipairs(db_positions) do 
+        local a,b=ReadDB(filename)
+        if(a) then return a,b end
+    end
+
     return nil
 end
 
-local function WriteDB(filename,tb,is_raw) -- By default, is_raw=false
+local function WriteDB(filename,tb)
     local f=io.open(filename,"w")
     if(f) then 
-        if(not is_raw) then f:write(serialization.serialize(tb))
-        else f:write(tb) end
+        f:write(serialization.serialize(tb))
         f:close()
         return true
     end
     return false
 end
 
-local function CreateDB(tb,is_raw)
+local function UpdateDB(main_tb,new_tb) -- Change values with same key in main_tb to values in new_tb. Add new items to main_tb
+    for k,v in pairs(new_tb) do
+        main_tb[k]=v
+    end
+end
+
+local function CreateDB(tb)
     for idx,dirname in ipairs(db_dirs) do
         filesystem.makeDirectory(dirname) -- buggy
     end
     for idx,filename in ipairs(db_positions) do
-        if(WriteDB(filename,tb,is_raw)) then
-            return filename
+        local main_db=ReadDB(filename)
+        if(main_db) then
+            UpdateDB(main_db,tb)
+            if(WriteDB(filename,main_db)) then
+                return filename
+            end
+        else 
+            if(WriteDB(filename,tb)) then
+                return filename
+            end
         end
     end
     return nil
@@ -195,6 +224,15 @@ end
 
 local db,dbfilename=ReadDB()
 
+local function check_db()
+    if(db) then return true
+    else
+        print("No programs info found on this computer.")
+        print("Please run `grab update` first.")
+        return false 
+    end
+end
+
 if(args[1]=="install") then
     if(#args<2) then 
         print("Nothing to install.")
@@ -204,6 +242,8 @@ if(args[1]=="install") then
 
         print("Checking programs info...")
     end
+
+    if(not check_db()) then return end
 
     local to_install={}
     for i=2,#args,1 do
@@ -306,17 +346,46 @@ if(args[1]=="install") then
             end
         end
     end
-    print("Fetched " .. count_files .. " files in " .. math.floor(computer.uptime()-time_before) .. " seconds.")
+    print("Fetched " .. count_files .. " files in " .. string.format("%.1f",computer.uptime()-time_before) .. " seconds.")
     print("Installing...")
-
+    for this_lib in pairs(to_install) do
+        if(db[this_lib].installer) then
+            print("Running installer for " .. this_lib .. "...")
+            os.execute(db[this_lib].installer)
+        end
+    end
     print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
     return
 end
 
 if(args[1]=="list") then
+    if(not check_db()) then return end
+
     print("Listing projects...")
     for this_lib in pairs(db) do
         print(this_lib)
+    end
+
+    return
+end
+
+if(args[1]=="show") then
+    if(not check_db()) then return end
+    if(#args<2) then
+        print("Nothing to show.")
+    end
+
+    if(db[args[2]]) then
+        local this_info=db[args[2]]
+        print("Name: " .. args[2])
+        print("Title: " .. db[args[2]].title)
+        print("Info:\n\t" .. db[args[2]].info)
+
+        local nFiles=0
+        for k,v in pairs(db[args[2]].files) do nFiles=nFiles+1 end
+        print("Files: " .. nFiles)
+    else
+        print("Library " .. args[2] .. " not found.")
     end
 
     return

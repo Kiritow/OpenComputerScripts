@@ -3,8 +3,10 @@
         title="Grab",
         info="Grab - Official OpenComputerScripts Installer",
         files={
-            "grab.lua"
-        }
+            "grab.lua",
+            ["grab_installer.lua"]="/tmp/.grab_installer"
+        },
+        installer="/tmp/.grab_installer"
     },
     ["checkarg"]={
         title="Arugment Checker",
