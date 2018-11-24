@@ -4,9 +4,9 @@
         info="Grab - Official OpenComputerScripts Installer",
         files={
             "grab.lua",
-            ["grab_installer"]="/tmp/.grab_installer"
+            ["grab_installer.lua"]="/tmp/.grab_installer.lua"
         },
-        installer="/tmp/.grab_installer"
+        installer="/tmp/.grab_installer.lua"
     },
     ["checkarg"]={
         title="Arugment Checker",

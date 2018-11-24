@@ -1,3 +1,0 @@
-echo "Thank you for installing Grab - The official OpenComputerScripts Installer."
-grab update
-echo "Programs info has been updated."

@@ -8,7 +8,7 @@ local serialization=require('serialization')
 local event=require('event')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.2.1-alpha"
+local grab_version="Grab v2.2.2-alpha"
 
 local valid_options={
     ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
@@ -285,7 +285,7 @@ if(args[1]=="install") then
     for this_lib in pairs(to_install) do
         io.write(this_lib .. " ")
         count_libs=count_libs+1
-        for k in ipairs(db[this_lib].files) do
+        for k in pairs(db[this_lib].files) do
             count_files=count_files+1
         end
     end
@@ -352,7 +352,15 @@ if(args[1]=="install") then
     for this_lib in pairs(to_install) do
         if(db[this_lib].installer) then
             print("Running installer for " .. this_lib .. "...")
-            os.execute(db[this_lib].installer)
+            local fn,err=loadfile(db[this_lib].installer)
+            if(not fn) then
+                print("[Installer Error]: " .. err)
+            else
+                local ok,xerr=pcall(fn)
+                if(not ok) then
+                    print("[Installer Error]: " .. xerr)
+                end
+            end
         end
     end
     print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
