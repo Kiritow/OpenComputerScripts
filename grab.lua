@@ -387,12 +387,21 @@ if(args[1]=="show") then
     if(db[args[2]]) then
         local this_info=db[args[2]]
         print("Name: " .. args[2])
-        print("Title: " .. db[args[2]].title)
-        print("Info:\n\t" .. db[args[2]].info)
+        if(this_info.deprecated) then 
+            print("Title: [Deprecated] " .. this_info.title)
+        else
+            print("Title: " .. this_info.title)
+        end
+        print("Info: " .. this_info.info)
+        if(this_info.author) then print("Author: " .. this_info.author) end
+        if(this_info.contact) then print("Contact: " .. this_info.contact) end
 
         local nFiles=0
-        for k,v in pairs(db[args[2]].files) do nFiles=nFiles+1 end
+        for k,v in pairs(this_info.files) do nFiles=nFiles+1 end
         print("Files: " .. nFiles)
+
+        if(this_info.precheck) then print("Precheck: Yes") end
+        if(this_info.installer) then print("Installer: Yes") end
     else
         print("Library " .. args[2] .. " not found.")
     end

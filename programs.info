@@ -12,14 +12,21 @@
         title="Arugment Checker",
         info="For easier argument checking",
         files={
-            "checkarg.lua"
+            ["libs/checkarg.lua"]="checkarg.lua"
+        }
+    },
+    ["util"]={
+        title="Utility",
+        info="Misc programming helper.",
+        files={
+            ["libs/util.lua"]="util.lua"
         }
     },
     ["libevent"]={
         title="LibEvent",
         info="For easier event processing",
         files={
-            "libevent.lua"
+            ["libs/libevent.lua"]="libevent.lua"
         },
         requires={
             "checkarg"
@@ -29,14 +36,16 @@
         title="LibGPU",
         info="For easier gpu programming",
         files={
-            "libgpu.lua"
+            ["libs/libgpu.lua"]="libgpu.lua"
         }
     },
     ["simple_data_structure"]={
         title="Simple Lua Data Structure",
         info="Provides class(...),queue and vector",
         files={
-            "class.lua", "queue.lua", "vector.lua"
+            ["libs/simple_data_structure/class.lua"]="class.lua", 
+            ["libs/simple_data_structure/queue.lua"]="queue.lua", 
+            ["libs/simple_data_structure/vector.lua"]="vector.lua"
         }
     },
     ["minesweeper"]={
@@ -55,8 +64,8 @@
         author="Kiritow",
         contact="1362050620@qq.com",
         files={
-            "drone_bios.lua",
-            "drone_console.lua"
+            ["programs/drone/drone_bios.lua"]="drone_bios.lua",
+            ["programs/drone/drone_console.lua"]="drone_console.lua"
         },
         requires={
             "libevent"
@@ -64,13 +73,38 @@
     },
     ["smartstorage"]={
         title="Smart Storage",
-        info="Smart Storage",
+        info="Smarter chests, auto-crafting...",
         author="Kiritow",
         files={
-            "SmartStorage.lua"
+            ["programs/smartstorage/SmartStorage.lua"]="SmartStorage.lua"
         },
         requires={
             "libevent"
+        }
+    },
+    ["smartstoragerobot"]={
+        title="Smart Storage Robot Client",
+        info="This is the client program of Smart Storage System.",
+        author="Kiritow",
+        files={
+            ["programs/smartstorage/SmartStorageRobot.lua"]="SmartStorageRobot.lua"
+        },
+        requires={
+            "libevent"
+        }
+    },
+    ["station"]={
+        title="Station",
+        info="Collection of railway station control programs.",
+        deprecated=true,
+        files={
+            ["programs/station/station_2_3.lua"]="station_2_3.lua",
+            ["programs/station/station_2_4.lua"]="station_2_4.lua",
+            ["programs/station/station_2_4_2.lua"]="station_2_4_2.lua",
+            ["programs/station/station_2_6.lua"]="station_2_6.lua"
+        },
+        requires={
+            "libevent","checkarg","util","simple_data_structure"
         }
     }
 }
