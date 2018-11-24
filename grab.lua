@@ -5,9 +5,10 @@ local component=require('component')
 local shell=require('shell')
 local filesystem=require('filesystem')
 local serialization=require('serialization')
+local event=require('event')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.2-alpha"
+local grab_version="Grab v2.2.1-alpha"
 
 local valid_options={
     ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
@@ -295,7 +296,7 @@ if(args[1]=="install") then
     print("Downloading...")
     local id_installing=0
     for this_lib in pairs(to_install) do
-        for k,v in ipairs(db[this_lib].files) do
+        for k,v in pairs(db[this_lib].files) do
             id_installing=id_installing+1
 
             local toDownload

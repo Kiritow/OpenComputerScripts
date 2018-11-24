@@ -4,7 +4,7 @@
         info="Grab - Official OpenComputerScripts Installer",
         files={
             "grab.lua",
-            ["grab_installer.lua"]="/tmp/.grab_installer"
+            ["grab_installer"]="/tmp/.grab_installer"
         },
         installer="/tmp/.grab_installer"
     },
@@ -53,7 +53,7 @@
         title="Drone",
         info="Drone console and bios",
         author="Kiritow",
-        contact="1362060620@qq.com",
+        contact="1362050620@qq.com",
         files={
             "drone_bios.lua",
             "drone_console.lua"
