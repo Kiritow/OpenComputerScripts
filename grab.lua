@@ -8,7 +8,7 @@ local serialization=require('serialization')
 local event=require('event')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.3-alpha"
+local grab_version="Grab v2.3.1-alpha"
 
 local valid_options={
     ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
@@ -114,15 +114,12 @@ if(not options["proxy"]) then
     end
 else
     local ok,err=pcall(function()
-        local f=io.open(options["proxy"],"r")
-        if(f==nil) then error("Proxy file not found") end
-        local src=f:read("a")
-        f:close()
-        local fn=load(src)
-        UrlGenerator=fn()
+        local fn,xerr=loadfile(options["proxy"])
+        if(not fn) then error(xerr) 
+        else UrlGenerator=fn() end
     end)
     if(not ok) then
-        print("Proxy file error: " .. err)
+        print("Unable to load proxy file: " .. err)
         return
     end
 end
@@ -257,6 +254,8 @@ if(args[1]=="add") then
     if(not check_db()) then 
         return 
     end
+    
+    print("[WARN] Adding unofficial program providers may have security issues.")
 
     for i=2,#args,1 do
         local url=string.match(args[i],"^http[s]?://%S+")
@@ -384,7 +383,25 @@ if(args[1]=="install") then
             end
 
             io.write("[" .. id_installing .. "/" .. count_files .. "] Downloading " .. toDownload .. " for " .. this_lib .. "... ")
-            local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master",toDownload))
+            local this_url
+            if(db[this_lib].proxy) then
+                this_url=string.gsub(
+                    string.gsub(
+                        string.gsub(
+                            db[this_lib].proxy,
+                            "__repo__",
+                            db[this_lib].repo or "Kiritow/OpenComputerScripts"
+                        ),
+                        "__branch__",
+                        db[this_lib].branch or "master"
+                    ),
+                    "__file__",
+                    toDownload
+                )
+            else
+                this_url=UrlGenerator(db[this_lib].repo or "Kiritow/OpenComputerScripts",db[this_lib].branch or "master",toDownload)
+            end
+            local ok,result,code=download(this_url)
             if(not ok) then 
                 print("[Download Failed] " .. result)
                 return
