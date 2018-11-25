@@ -8,13 +8,16 @@ local serialization=require('serialization')
 local event=require('event')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.2.2-alpha"
+local grab_version="Grab v2.3-alpha"
 
 local valid_options={
     ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
 }
 local valid_command={
-    ["install"]=true,["update"]=true,["list"]=true,["show"]=true,["download"]=true
+    ["install"]=true,
+    ["add"]=true,["update"]=true,["clear"]=true,
+    ["list"]=true,["search"]=true,["show"]=true,
+    ["download"]=true
 }
 
 local nOptions=0
@@ -40,8 +43,11 @@ Options:
     --skip_install Library installers will not be executed.
 Command:
     install <Project> ...: Install projects. Dependency will be downloaded automatically.
+    add <Provider> ... : Add program provider info.
     update: Update program info.
+    clear: Clear program info.
     list: List available projects.
+    search <Name or Pattern> :  Search projects by name
     show <Project> : Show more info about project.
     download <Filename> ...: Directly download files. (Just like the old `update`!)
 ]===])
@@ -190,6 +196,15 @@ local function CreateDB(tb)
     return nil
 end
 
+if(args[1]=="clear") then
+    print("Clearing programs info...")
+    for idx,filename in pairs(db_positions) do
+        filesystem.remove(filename)
+    end
+    print("Programs info cleaned. You may want to run `grab update` now.")
+    return 
+end
+
 if(args[1]=="update") then
     if(not check_internet()) then return end
 
@@ -232,6 +247,65 @@ local function check_db()
         print("Please run `grab update` first.")
         return false 
     end
+end
+
+if(args[1]=="add") then 
+    if(#args<2) then 
+        print("Nothing to add.")
+    end
+
+    if(not check_db()) then 
+        return 
+    end
+
+    for i=2,#args,1 do
+        local url=string.match(args[i],"^http[s]?://%S+")
+        if(url==nil) then 
+            local filename=args[i]
+            local f=io.open(filename,"r")
+            if(not f) then
+                print("Unable to open local file: " .. filename)
+            else
+                local content=f:read("*a")
+                f:close()
+                local t,err=CheckAndLoad("return " .. content)
+                if(t) then 
+                    print("Updating with local file: " .. filename)
+                    local fname=CreateDB(t)
+                    if(fname) then
+                        print("Programs info updated and saved to " .. fname)
+                    else
+                        print("Unable to update programs info.")
+                    end
+                else
+                    print("Failed to load local file: " .. filename .. ". Error: " .. err)
+                end
+            end
+        else
+            print("Downloading from " .. url)
+            local ok,result,code=download(url)
+            if(not ok) then
+                print("[Download Failed] " .. result)
+            elseif(code~=200) then
+                print("[Download Failed] Response code is not 200 but " .. code)
+            else
+                local t,err=CheckAndLoad("return " .. result)
+                if(t) then 
+                    print("Updating with downloaded content...")
+                    local fname=CreateDB(t)
+                    if(fname) then
+                        print("Programs info updated and saved to " .. fname)
+                    else
+                        print("Unable to update programs info.")
+                    end
+                else
+                    print("Failed to load downloaded content. Error: " .. err)
+                end
+            end
+        end
+    end
+
+    return
 end
 
 if(args[1]=="install") then
@@ -348,20 +422,24 @@ if(args[1]=="install") then
         end
     end
     print("Fetched " .. count_files .. " files in " .. string.format("%.1f",computer.uptime()-time_before) .. " seconds.")
-    print("Installing...")
-    for this_lib in pairs(to_install) do
-        if(db[this_lib].installer) then
-            print("Running installer for " .. this_lib .. "...")
-            local fn,err=loadfile(db[this_lib].installer)
-            if(not fn) then
-                print("[Installer Error]: " .. err)
-            else
-                local ok,xerr=pcall(fn)
-                if(not ok) then
-                    print("[Installer Error]: " .. xerr)
+    if(not options["skip_install"]) then
+        print("Installing...")
+        for this_lib in pairs(to_install) do
+            if(db[this_lib].installer) then
+                print("Running installer for " .. this_lib .. "...")
+                local fn,err=loadfile(db[this_lib].installer)
+                if(not fn) then
+                    print("[Installer Error]: " .. err)
+                else
+                    local ok,xerr=pcall(fn)
+                    if(not ok) then
+                        print("[Installer Error]: " .. xerr)
+                    end
                 end
             end
         end
+    else
+        print("Installing is skipped.")
     end
     print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
     return
@@ -373,6 +451,23 @@ if(args[1]=="list") then
     print("Listing projects...")
     for this_lib in pairs(db) do
         print(this_lib)
+    end
+
+    return
+end
+
+if(args[1]=="search") then
+    if(not check_db()) then return end
+    if(#args<2) then
+        print("Nothing to search.")
+        return
+    end
+
+    print("Libraries matches '" .. args[2] .. "' :")
+    for this_lib in pairs(db) do
+        if(string.match(this_lib,args[2])) then
+            print(this_lib)
+        end
     end
 
     return
@@ -443,6 +538,8 @@ if(args[1]=="download") then
             end
         end
     end
+
+    return
 end
 
 
