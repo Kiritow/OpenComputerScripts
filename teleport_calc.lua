@@ -1,7 +1,7 @@
 -- Teleport Calculator
 local function getEUStr(eu)
     if(eu<1000) then
-        return '' .. math.ceil(eu)
+        return string.format(
     elseif(eu<1000*1000) then
         return '' .. math.ceil(eu/1000) .. 'K,' .. getEUStr(eu%1000)
     else
