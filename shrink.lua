@@ -1,3 +1,6 @@
+-- Shrink
+-- Created by Kiritow
+
 local function shrink(source)
     local len=string.len(source)
     local qouted=nil
@@ -10,7 +13,7 @@ local function shrink(source)
                 qouted=this
                 last_space=false
                 output=output .. this
-            elseif(this==' ' or this=='\n' or this=='\r') then
+            elseif(this==' ' or this=='\n' or this=='\r' or this=='\t') then
                 if(not last_space) then 
                     last_space=true
                     output=output .. ' '
@@ -32,3 +35,4 @@ local function shrink(source)
     return output
 end
 
+return shrink
