@@ -8,7 +8,7 @@ local serialization=require('serialization')
 local event=require('event')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.3.1-alpha"
+local grab_version="Grab v2.3.2-alpha"
 
 local valid_options={
     ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
@@ -84,7 +84,7 @@ local function download(url)
         elseif(ret==true) then 
             break 
         else
-            local ev=event.pull(0.5,"interrupted")
+            local ev=event.pull(0.05,"interrupted")
             if(ev~=nil) then 
                 handle.close()
                 return false,"Interrupted from terminal."
@@ -249,6 +249,7 @@ end
 if(args[1]=="add") then 
     if(#args<2) then 
         print("Nothing to add.")
+        return
     end
 
     if(not check_db()) then 
