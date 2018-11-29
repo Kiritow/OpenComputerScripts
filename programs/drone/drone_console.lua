@@ -108,7 +108,7 @@ function helper.setRadar(enable)
 end
 helper.target_drone=''
 function helper.install_step1()
-    modem.broadcast(98,"modem.send('" .. modem.address .. "',99,'hide_msg','prepare_for_install')")
+    modem.broadcast(98,"execute_command","modem.send('" .. modem.address .. "',99,'hide_msg','prepare_for_install')")
     while true do
         local e=WaitEvent(5,"modem_message")
         if(e==nil) then 
@@ -126,8 +126,12 @@ function helper.install_step1()
     return false
 end
 helper.drone_lib=[==[
-    drone_lib_version='DroneLib v0.1'
-    
+    drone_lib_version='DroneLib v0.1.1'
+    move=function(x,y,z,t)
+        t=t or 5
+        drone.move(x,y,z) 
+        while drone.getOffset()>1 do sleep(t) end
+    end
     return drone_lib_version .. " successfully installed."
 ]==]
 function helper.install_step2()
@@ -135,7 +139,7 @@ function helper.install_step2()
         SetResponse("[Local] Install step 2: About to perform installation on " .. helper.target_drone)
         os.sleep(1)
         SetResponse("[Local] Install step 2: Sending data to " .. helper.target_drone)
-        modem.send(helper.target_drone,98,helper.drone_lib)
+        modem.send(helper.target_drone,98,"execute_command",helper.drone_lib)
     end
 end
 

@@ -58,6 +58,13 @@
             "libgpu","libevent","simple_data_structure"
         }
     },
+    ["shrink"]={
+        title="Shrink",
+        info="Shrink string by removing useless spaces.",
+        files={
+            "shrink.lua"
+        }
+    },
     ["drone"]={
         title="Drone",
         info="Drone console and bios",
@@ -65,10 +72,12 @@
         contact="1362050620@qq.com",
         files={
             ["programs/drone/drone_bios.lua"]="drone_bios.lua",
-            ["programs/drone/drone_console.lua"]="drone_console.lua"
+            ["programs/drone/drone_console.lua"]="drone_console.lua",
+            ["programs/drone/drone_radar.lua"]="drone_radar.lua",
+            ["programs/drone/drone_flash.lua"]="drone_flash.lua"
         },
         requires={
-            "libevent"
+            "libevent", "shrink"
         }
     },
     ["smartstorage"]={

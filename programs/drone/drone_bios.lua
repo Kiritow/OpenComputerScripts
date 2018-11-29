@@ -1,6 +1,6 @@
+drone_version="Drone v3.3b"
 drone=component.proxy(component.list("drone")())
 modem=component.proxy(component.list("modem")())
-drone_version="Drone v3.2"
 drone.setStatusText(drone_version .. '\n' .. modem.address)
 modem.open(98)
 handlers={}
@@ -8,39 +8,67 @@ timers={}
 wake_list={}
 handlers["_anything"]={}
 handle_event=function(e)
-    if(handlers[e[1]]) then for i,tb in pairs(handlers[e[1]]) do coroutine.resume(tb.co,i,e) end end
-    for i,tb in pairs(handlers["_anything"]) do coroutine.resume(tb.co,i,e) end
+    if(handlers[e[1]]) then 
+        for i,tb in pairs(handlers[e[1]]) do 
+            coroutine.resume(tb.co,i,e) 
+        end
+    end
+    for i,tb in pairs(handlers["_anything"]) do 
+        coroutine.resume(tb.co,i,e)
+    end
 end
 sleep=function(sec)
-    local this,flag=coroutine.running()
-    table.insert(wake_list,{id=0,tm=computer.uptime()+sec,co=this})
-    local this_id=coroutine.yield()
-    table.remove(wake_list,this_id)
+    table.insert(wake_list,{id=0,tm=computer.uptime()+sec,co=coroutine.running()})
+    table.remove(wake_list,coroutine.yield())
 end
-cancel=function(id)
-    if(timers[id]) then for i,t in ipairs(wake_list) do if(t.id==id) then table.remove(wake_list,i) break end end timers[id]=nil return true 
-    else return false end
+cancel=function(id,wid)
+    if(wid) then 
+        table.remove(wake_list,wid) 
+    else 
+        for i,t in ipairs(wake_list) do 
+            if(t.id==id) then 
+                table.remove(wake_list,i) 
+                break 
+            end 
+        end
+    end
+    if(timers[id]) then 
+        timers[id]=nil 
+        return true
+    else 
+        return false 
+    end
 end
 timer=function(sec,fn,times)
-    local next=computer.uptime()+sec
-    local id=table.insert(timers,{cb=fn,intv=sec,times=times})
-    table.insert(wake_list,{tm=next,id=id,co=coroutine.create(function(this_id)
+    table.insert(timers,{cb=fn,intv=sec,times=times})
+    local id=#timers
+    table.insert(wake_list,{tm=computer.uptime()+sec,id=id,co=coroutine.create(function(wid)
         while true do 
-            pcall(fn) 
-            local this_tb=timers[this.id]
-            if(this_tb.times>0) then this_tb.times=this_tb.times-1 
-                if(this_tb.times<1) then timer[wake_list[this_id].id]=nil table.remove(wake_list,this_id) return
-                else this.tm=computer.uptime()+this_tb.intv this_id=coroutine.yield() end
+            pcall(fn)
+            local tb=timers[id]
+            if(tb.times<0 or tb.times>1) then 
+                tb.times,tb.tm=tb.times-1,computer.uptime()+tb.intv
+                wid=coroutine.yield()
+            else
+                cancel(id,wid)
+                return
             end
         end
     end)})
     return id
 end
 ignore=function(name,id)
-    handlers[name][id]=nil
+    if(handlers[name][id]) then 
+        handlers[name][id]=nil 
+        return true
+    else 
+        return false 
+    end
 end
 listen=function(name,cb)
-    if(handlers[name]==nil) then handlers[name]={} end
+    if(handlers[name]==nil) then 
+        handlers[name]={}
+    end
     table.insert(handlers[name],{co=coroutine.create(function(i,e)
         while true do
             local ok,res=pcall(cb,e)
@@ -54,28 +82,27 @@ listen=function(name,cb)
     return #handlers[name]
 end
 wait=function(sec,name)
-    if(sec==nil and name==nil) then sec=-1 
-    elseif(sec==nil and name~=nil) then sec=-1
-    elseif(sec~=nil and name==nil) then if(type(sec)=="string") then name=sec sec=-1 end end
-    local this,flag=coroutine.running()
-    if(sec>=0) then
-        table.insert(wake_list,{id=0,tm=computer.uptime()+sec,co=this})
-    else
-        table.insert(wake_list,{id=0,tm=math.huge,co=this})
-    end
-    local id
-    if(name~=nil) then
-        id=listen(name,function(e) if(e[1]==name) then coroutine.resume(this,-1,e) return false end end)
-    else
-        id=listen("_anything",function(e) coroutine.resume(this,-1,e) return false end)
-    end
-    local this_id,e=coroutine.yield()
-    if(this_id==-1) then
-        for idx,t in ipairs(wake_list) do if(t.co==this) then table.remove(wake_list,idx) end end
+    if(name==nil and type(sec)=="string") then name=sec sec=nil end
+    sec=sec and computer.uptime()+sec or math.huge
+    local this=coroutine.running()
+    table.insert(wake_list,{id=0,tm=sec,co=this})
+    name=name or "_anything"
+    local id=listen(name,function(e) 
+        coroutine.resume(this,-1,e)
+        return false
+    end)
+    local wid,e=coroutine.yield()
+    ignore(name,id)
+    if(wid==-1) then
+        for i,t in ipairs(wake_list) do 
+            if(t.co==this) then 
+                table.remove(wake_list,i)
+                break
+            end
+        end
         return e
     else
-        ignore(id)
-        table.remove(wake_list,this_id)
+        table.remove(wake_list,wid)
         return nil
     end
 end
@@ -83,25 +110,26 @@ listen("modem_message",function(e)
     local snd=e[3]
     local tag=e[6]
     local cmd=e[7]
-    if(tag~=nil and cmd~=nil and tag=='execute_command') then 
-        local ok,err=pcall(function() 
-            local f=load(cmd)
-            local cmdok,cmdresult=pcall(f)
-            if(not cmdok) then
-                modem.send(snd,99,"Failed to execute: " .. cmdresult)
+    if(tag and tag=='execute_command' and cmd) then 
+        local f,err=load(cmd)
+        if(f) then
+            local ok,err=pcall(f)
+            if(not ok) then 
+                modem.send(snd,99,"CallError: " .. res)
             else
-                modem.send(snd,99,cmdresult)
+                modem.send(snd,99,res)
             end
-        end)
-        if(not ok) then
-            modem.send(snd,99,"Command Execute Failed: " .. err)
+        else
+            modem.send(snd,99,"SyntaxError: " .. err)
         end
     end
 end)
 while true do
     local max_wait,max_id=math.huge,0
     for i,v in ipairs(wake_list) do
-        if(v.tm<max_wait) then max_wait,max_id=v.tm,i end
+        if(v.tm<max_wait) then 
+            max_wait,max_id=v.tm,i
+        end
     end
     local e
     if(max_wait==math.huge) then
