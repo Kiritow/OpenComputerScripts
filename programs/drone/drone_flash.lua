@@ -10,6 +10,11 @@ while true do
         break
     end
 end
+if(not component.eeprom) then
+    print("No eeprom detected. Exited.")
+    return
+end
+print("EEPROM detected: " .. component.eeprom.address)
 print("[Working] Reading drone bios from disk...")
 local f=io.open("drone_bios.lua","r")
 if(not f) then 
@@ -18,15 +23,16 @@ if(not f) then
 end
 local data=f:read("a")
 f:close()
-print("Original data size: " .. string.len(data))
+local szBefore=string.len(data)
+print("Original data size: " .. szBefore)
 print("[Working] Syntax checking...")
 local xt={}
-local fn,err=load(data,"DroneBios","t",xt)
+local fn,err=load(data,"DroneBIOS","t",xt)
 if(not fn) then
     print("Found syntax error: " .. err)
     return
 end
-print("[Working] Getting DroneBios version...")
+print("[Working] Getting DroneBIOS version...")
 pcall(fn)
 local drone_bios_version=xt['drone_version']
 if(not drone_bios_version) then 
@@ -36,7 +42,12 @@ end
 print("Version tag: " .. drone_bios_version)
 print("[Working] Shrinking...")
 data=shrink(data)
-print("Shrank data size: " .. string.len(data))
+local szAfter=string.len(data)
+print("Shrank data size: " .. szAfter)
+if(component.eeprom.getSize()<szAfter) then
+    print("[Error] Not enough space in eeprom. Need " .. szAfter-component.eeprom.getSize() .. " more bytes.")
+    return
+end
 print("[Working] Writing to eeprom...")
 component.eeprom.set(data)
 print("[Working] Setting eeprom label...")
