@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4-alpha"
+local grab_version="Grab v2.4.1-alpha"
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
@@ -51,11 +51,29 @@ Notice:
 ]===]
 
 -- Install man document
-if(not filesystem.exists("/usr/man/grab")) then
-    local f=io.open("/usr/man/grab","w")
+if(not filesystem.exists("/etc/grab/grab.version")) then
+    local f=io.open("/etc/grab/grab.version","w")
+    if(f) then
+        f:write(grab_version)
+        f:close()
+    end
+    f=io.open("/usr/man/grab","w")
     if(f) then
         f:write(usage_text)
         f:close()
+    end
+else
+    local f=io.open("/etc/grab/grab.version","r")
+    if(f) then
+        local installed_version=f:read("a")
+        f:close()
+        if(installed_version~=grab_version) then
+            f=io.open("/usr/man/grab","w")
+            if(f) then
+                f:write(usage_text)
+                f:close()
+            end
+        end
     end
 end
 
