@@ -8,7 +8,7 @@ local serialization=require('serialization')
 local event=require('event')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.3.2-alpha"
+local grab_version="Grab v2.3.3-alpha"
 
 local valid_options={
     ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
@@ -308,6 +308,24 @@ if(args[1]=="add") then
     return
 end
 
+local function getshowbyte(n)
+    if(n<1024) then
+        return string.format("%.1f B",n+0.0)
+    elseif(n<1024*1024) then
+        return string.format("%.1f KB",n/1024)
+    else
+        return string.format("%.1f MB",n/1024/1024)
+    end
+end
+
+local function getshowtime(n)
+    if(n<60) then
+        return string.format("%.1fs",n+0.0)
+    else
+        return string.format("%.0fm%.0fs",n/3600,n%3600)
+    end
+end
+
 if(args[1]=="install") then
     if(#args<2) then 
         print("Nothing to install.")
@@ -368,6 +386,7 @@ if(args[1]=="install") then
     local time_before=computer.uptime()
 
     print("Downloading...")
+    local count_byte=0
     local id_installing=0
     for this_lib in pairs(to_install) do
         for k,v in pairs(db[this_lib].files) do
@@ -410,6 +429,7 @@ if(args[1]=="install") then
                 print("[Download Failed] response code " .. code .. " is not 200.")
                 return 
             else
+                count_byte=count_byte+string.len(result)
                 if(type(v)=="string") then
                     local f=io.open(v,"w")
                     if(f==nil) then
@@ -439,7 +459,7 @@ if(args[1]=="install") then
             end
         end
     end
-    print("Fetched " .. count_files .. " files in " .. string.format("%.1f",computer.uptime()-time_before) .. " seconds.")
+    print("Fetched " .. count_files .. " files (" .. getshowbyte(count_byte) .. ") in " .. getshowtime(computer.uptime()-time_before) .. ".")
     if(not options["skip_install"]) then
         print("Installing...")
         for this_lib in pairs(to_install) do
