@@ -26,7 +26,11 @@
         title="LibEvent",
         info="For easier event processing",
         files={
-            ["libs/libevent.lua"]="libevent.lua"
+            ["libs/libevent.lua"]="libevent.lua",
+            ["libs/libevent_doc.txt"]={
+                "/usr/man/libevent",
+                "/tmp/libevent_doc.txt"
+            }
         },
         requires={
             "checkarg"

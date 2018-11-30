@@ -1,0 +1,46 @@
+NAME
+    libevent - For easier event handling.
+
+FUNCTIONS
+    SetEventTranslator(event_name : string, callback : function)
+        Set external event translator.
+    
+    AddEventListener(EventName : string, CallbackFunction : function) : number
+        Add event listener. Return event listener id.
+
+    RemoveEventListener(ListenerID : number) : boolean
+        Remove event listener. Only listener id is required.
+
+    WaitEventEx(...) : Event
+        Equivalent to event.pull(...), but return event package.
+
+    WaitEvent([timeout : number],[event name : string]) : Event
+    WaitEvent([event name : string],[timeout : number]) : Event -- Deprecated
+        Simpler waiting event.
+
+    WaitMultipleEvent(...) : Event
+        Equivalent to event.pullMultiple(...), but return event package.
+
+    PushEvent(EventName : string,...)
+        Equivalent to event.push(EventName,...)
+
+    AddTimer(Interval : number, CallbackFunction : function, Times : number) : number
+        Equivalent to event.timer(Interval,CallbackFunction,Times). Times will be math.huge if <0.
+    
+    RemoveTimer(TimerID : number) : boolean
+        Equivalent to event.cancel(TimerID)
+
+    CreateEventBus() : EventBus
+        Create a event bus. The event bus works like a FIFO queue.
+    
+    EventBusListen(t : EventBus, event_name : string, checkfn : function)
+    EventBus:listen(event_name : string, checkfn : function)
+        Listen a event. All listened events will be automatically added to event bus.
+        If checkfn presents, it will be called before adding events. If it returns true, then event will be added.
+
+    EventBus:next([wait_second : number],[wait_ratio : number])
+        Get an event from event bus. By default, EventBus:next() will wait until an listened event happens.
+    
+    EventBus:close()
+        Clean up internal buffer and listeners.
+        The programmer is responsible for calling this method. (because OC does not support __gc meta-method.)
