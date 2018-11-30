@@ -6,17 +6,89 @@ local shell=require('shell')
 local filesystem=require('filesystem')
 local serialization=require('serialization')
 local event=require('event')
+local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.3.3-alpha"
+local grab_version="Grab v2.4-alpha"
+
+local usage_text=[===[Grab - Official OpenComputerScripts Installer
+Usage:
+    grab [<options>] <command> ...
+Options:
+    --cn Use mirror site in China. By default grab will download from Github. This might be useful for only official packages.
+    --help Display this help page.
+    --version Display version and exit.
+    --proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like:
+        function(RepoName: string, Branch: string ,FileAddress: string): string
+    --skip-install Library installers will not be executed.
+    --refuse-license <License> Set refused license. Separate multiple values with ','
+    --accept-license <License> Set accepted license. Separate multiple values with ','
+Command:
+    install <Project> ...: Install projects. Dependency will be downloaded automatically.
+    add <Provider> ... : Add program provider info.
+    update: Update program info.
+    clear: Clear program info.
+    list: List available projects.
+    search <Name or Pattern> :  Search projects by name
+    show <Project> : Show more info about project.
+    download <Filename> ...: Directly download files. (Just like the old `update`!)
+Notice:
+    License
+        By downloading and using Grab, you are indicating your agreement to MIT license. (https://github.com/Kiritow/OpenComputerScripts/blob/master/LICENSE)
+        All scripts in official OpenComputerScript repository are under MIT license.
+        Before downloading any package under other licenses, Grab will ask you to agree with it.
+        This confirmation can be skipped by calling Grab with --accept-license.
+        Example:
+            --accept-license=mit means MIT License is accepted. 
+            --refuse-license=mit means MIT License is refused. 
+            --accept-license means all licenses are accepted.
+            --refuse-license means all licenses are refused. (Official packages are not affected.)
+            If a license is both accepted and refused, it will be refused.
+    Program Provider
+        A package is considered to be official only if it does not specified repo and proxy. Official packages usually only depend on official packages.
+        You can also install packages from unofficial program provider with Grab, but Grab will not check its security.
+        Notice that override of official packages is not allowed.
+]===]
+
+-- Install man document
+if(not filesystem.exists("/usr/man/grab")) then
+    local f=io.open("/usr/man/grab","w")
+    if(f) then
+        f:write(usage_text)
+        f:close()
+    end
+end
+
+local function show_usage()
+    if(filesystem.exists("/usr/man/grab")) then
+        os.execute("less /usr/man/grab")
+    else
+        local temp_name=os.tmpname()
+        local f=io.open(temp_name,"w")
+        f:write(usage_text)
+        f:close()
+        os.execute("less " ..  temp_name)
+        os.execute("rm " .. temp_name)
+    end
+end
 
 local valid_options={
-    ["cn"]=true, ["help"]=true, ["version"]=true, ["proxy"]=true, ["skip_install"]=true
+    ["cn"]=true, 
+    ["help"]=true, 
+    ["version"]=true, 
+    ["proxy"]=true, 
+    ["skip-install"]=true, 
+    ["refuse-license"]=true,
+    ["accept-license"]=true
 }
 local valid_command={
     ["install"]=true,
-    ["add"]=true,["update"]=true,["clear"]=true,
-    ["list"]=true,["search"]=true,["show"]=true,
+    ["add"]=true,
+    ["update"]=true,
+    ["clear"]=true,
+    ["list"]=true,
+    ["search"]=true,
+    ["show"]=true,
     ["download"]=true
 }
 
@@ -28,29 +100,6 @@ for k,v in pairs(options) do
         return
     end
     nOptions=nOptions+1 
-end
-
-local function show_usage()
-    print([===[Grab - Official OpenComputerScripts Installer
-Usage:
-    grab [<options>] <command> ...
-Options:
-    --cn Use mirror site in China. By default grab will download from Github.
-    --help Display this help page."
-    --version Display version and exit."
-    --proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like: "
-        function(RepoName: string, Branch: string ,FileAddress: string): string"
-    --skip_install Library installers will not be executed.
-Command:
-    install <Project> ...: Install projects. Dependency will be downloaded automatically.
-    add <Provider> ... : Add program provider info.
-    update: Update program info.
-    clear: Clear program info.
-    list: List available projects.
-    search <Name or Pattern> :  Search projects by name
-    show <Project> : Show more info about project.
-    download <Filename> ...: Directly download files. (Just like the old `update`!)
-]===])
 end
 
 local function check_internet()
@@ -124,17 +173,85 @@ else
     end
 end
 
+local function IsOfficial(tb_package)
+    if(tb_package.repo==nil and tb_package.proxy==nil) then
+        return true
+    else
+        return false
+    end
+end
+
 local db_dirs={"/etc/grab",".grab","/tmp/.grab"}
 local db_positions={"/etc/grab/programs.info",".grab/programs.info","/tmp/.grab/programs.info"}
 
-local function CheckAndLoad(raw_content)
+local function VerifyDB(this_db)
+    for k,t in pairs(this_db) do
+        if(type(k)~="string") then
+            return false,"Invalid key type: " .. type(k)
+        elseif(type(t)~="table") then
+            return false,"Invalid value type: " .. type(t)
+        elseif(not t.title) then
+            return false,"Library " .. k .. " does not provide title."
+        elseif(not t.info) then
+            return false,"Library " .. k .. " does not provide info."
+        elseif(not t.files) then
+            return false,"Library " .. k .. " has no file."
+        end
+
+        for kk,vv in pairs(t.files) do
+            if(type(kk)=="number") then
+                if(type(vv)~="string") then
+                    return false,"Library " .. k .. " file " .. kk .. " has invalid value type " .. type(vv)
+                end
+            elseif(type(kk)=="string") then
+                if(type(vv)~="string" and type(vv)~="table") then
+                    return false,"Library " .. k .. " file " .. kk .. " has invalid value type " .. type(vv)
+                end
+            else
+                return fale,"Library " .. k .. " file has invalid key type " .. type(kk)
+            end
+        end
+        if(t.requires) then
+            for kk,vv in pairs(t.requires) do
+                if(type(kk)~="number" and type(vv)~="string") then
+                    return false,"Library " .. k .. " has invalid requires with key type " .. type(kk) .. ", value type " .. type(vv)
+                end
+            end
+        end
+        if(t.license) then
+            if(type(t.license.name)~="string") then
+                return false,"Library " .. k .. " has invalid license name type " .. type(t.license.name)
+            elseif(type(t.license.url)~="string") then
+                return false,"Library " .. k .. " has invalid license url type " .. type(t.license.url)
+            end
+        end
+    end
+
+    return true,"No error detected."
+end
+
+local function CheckAndLoadEx(raw_content)
     local fn,err=load(raw_content)
     if(fn) then 
         local ok,result=pcall(fn)
-        if(ok) then return result
+        if(ok) then
+            return result
         else return nil,result end
     end
     return nil,err
+end
+
+local function CheckAndLoad(raw_content)
+    local result,err=CheckAndLoadEx(raw_content)
+    if(not result) then
+        return result,err
+    end
+    local ok,err=VerifyDB(result)
+    if(not ok) then
+        return nil,err
+    else
+        return result
+    end
 end
 
 local function ReadDB(read_from_this)
@@ -167,20 +284,31 @@ local function WriteDB(filename,tb)
     return false
 end
 
-local function UpdateDB(main_tb,new_tb) -- Change values with same key in main_tb to values in new_tb. Add new items to main_tb
+local function UpdateDB(main_tb,new_tb,checked) -- Change values with same key in main_tb to values in new_tb. Add new items to main_tb
     for k,v in pairs(new_tb) do
+        if(checked and main_tb[k]) then
+            if(IsOfficial(main_tb[k])) then
+                print("UpdateDB: Attempted to override official library: " .. k)
+                return false
+            else
+                print("UpdateDB: Override library: " .. k)
+            end
+        end
         main_tb[k]=v
     end
+    return true
 end
 
-local function CreateDB(tb)
+local function CreateDB(tb,checked) -- If checked, merging is not allowed.
     for idx,dirname in ipairs(db_dirs) do
         filesystem.makeDirectory(dirname) -- buggy
     end
     for idx,filename in ipairs(db_positions) do
         local main_db=ReadDB(filename)
         if(main_db) then
-            UpdateDB(main_db,tb)
+            if(not UpdateDB(main_db,tb,checked)) then
+                return nil
+            end
             if(WriteDB(filename,main_db)) then
                 return filename
             end
@@ -220,7 +348,7 @@ if(args[1]=="update") then
         if(tb_data) then
             print("[OK]")
             io.write("Saving files... ")
-            local dbfilename=CreateDB(tb_data)
+            local dbfilename=CreateDB(tb_data,false)
             if(dbfilename) then
                 print("[OK]")
                 print("Programs info updated and saved to " .. dbfilename)
@@ -271,7 +399,7 @@ if(args[1]=="add") then
                 local t,err=CheckAndLoad("return " .. content)
                 if(t) then 
                     print("Updating with local file: " .. filename)
-                    local fname=CreateDB(t)
+                    local fname=CreateDB(t,true)
                     if(fname) then
                         print("Programs info updated and saved to " .. fname)
                     else
@@ -292,7 +420,7 @@ if(args[1]=="add") then
                 local t,err=CheckAndLoad("return " .. result)
                 if(t) then 
                     print("Updating with downloaded content...")
-                    local fname=CreateDB(t)
+                    local fname=CreateDB(t,true)
                     if(fname) then
                         print("Programs info updated and saved to " .. fname)
                     else
@@ -383,6 +511,104 @@ if(args[1]=="install") then
     end
     print("\n" .. count_libs .. " libraries will be installed. " .. count_files .. " files will be downloaded.")
 
+    local warn_libs_unofficial={}
+    for this_lib in pairs(to_install) do
+        if(not IsOfficial(db[this_lib])) then
+            table.insert(warn_libs_unofficial,this_lib)
+        end
+    end
+
+    if(next(warn_libs_unofficial)) then
+        print("[WARN] The following libraries are unofficial. Install at your own risk.")
+        print("\t" .. table.concat(warn_libs_unofficial," "))
+    end
+
+    -- Third-Party programs or unofficial programs may have license.
+    print("Checking License...")
+    local accepted_license={}
+    local refused_license={}
+    if(options["accept-license"]) then
+        if(type(options["accept-license"])=="boolean") then
+            accepted_license["__ALL__"]=true
+        else
+            local next_license=string.gmatch(options["accept-license"] .. ',',"[A-Za-z0-9]+,")
+            while true do
+                local this_license=next_license()
+                if(not this_license) then break end
+                this_license=string.lower(string.gsub(this_license,',',''))
+                accepted_license[this_license]=true
+            end
+        end
+    end
+
+    if(options["refuse-license"]) then
+        if(type(options["refuse-license"])=="boolean") then
+            refused_license["__ALL__"]=true
+        else
+            local next_license=string.gmatch(options["refuse-license"] .. ',',"[A-Za-z0-9]+,")
+            while true do
+                local this_license=next_license()
+                if(not this_license) then break end
+                this_license=string.lower(string.gsub(this_license,',',''))
+                refused_license[this_license]=true
+            end
+        end
+    end
+
+    for this_lib in pairs(to_install) do
+        if(not IsOfficial(db[this_lib]) and db[this_lib].license) then
+            if(refused_license["__ALL__"] or refused_license[string.lower(db[this_lib].license.name)]) then
+                print("[License Refused] License " .. db[this_lib].license.name .. " for library " .. this_lib .. " is refused.")
+                return
+            elseif(accepted_license["__ALL__"] or accepted_license[string.lower(db[this_lib].license.name)]) then
+                print("Accepted license " .. db[this_lib].license.name .. " for library " .. this_lib)
+            else
+                -- Download the license and show it to user.
+                print("Downloading license " .. db[this_lib].license.name .. " for library " .. this_lib .. " from: " .. db[this_lib].license.url)
+                local ok,result,code=download(db[this_lib].license.url)
+                if(not ok or code~=200) then
+                    print("[Download Failed] Unable to download license.")
+                    return
+                end
+
+                local temp_name=os.tmpname()
+                local f=io.open(temp_name,"w")
+                f:write("----------Grab----------\nYou have to agree with this license for library " .. this_lib .. "\n------------------------\n\n")
+                f:write(result)
+                f:close()
+
+                local confirmed=false
+                while not confirmed do
+                    os.execute("less " .. temp_name)
+                    print("Do you agree with that license?")
+                    print("(Y) - Yes. (N) - No. (A) - View it again.")
+                    while true do
+                        local x=io.read()
+                        if(x~=nil) then
+                            if(x=='y' or x=='Y') then
+                                confirmed=1
+                                break
+                            elseif(x=='n' or x=='N') then
+                                confirmed=2
+                                break
+                            elseif(x=='a' or x=='A') then
+                                break
+                            end
+                        end
+                    end
+                end
+
+                os.execute("rm " .. temp_name)
+                if(confirmed==2) then
+                    print("[License Refused] License " .. db[this_lib].license.name .. " for library " .. this_lib .. " is refused by user.")
+                    return
+                else
+                    print("Accepted license " .. db[this_lib].license.name .. " for library " .. this_lib)
+                end
+            end
+        end
+    end
+
     local time_before=computer.uptime()
 
     print("Downloading...")
@@ -449,6 +675,7 @@ if(args[1]=="install") then
                             f:write(result)
                             f:close()
                             print("[OK]")
+                            break
                         end
                     end
                     if(not success) then
@@ -460,7 +687,7 @@ if(args[1]=="install") then
         end
     end
     print("Fetched " .. count_files .. " files (" .. getshowbyte(count_byte) .. ") in " .. getshowtime(computer.uptime()-time_before) .. ".")
-    if(not options["skip_install"]) then
+    if(not options["skip-install"]) then
         print("Installing...")
         for this_lib in pairs(to_install) do
             if(db[this_lib].installer) then
@@ -477,7 +704,7 @@ if(args[1]=="install") then
             end
         end
     else
-        print("Installing is skipped.")
+        print("Installation is skipped.")
     end
     print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
     return
@@ -520,11 +747,10 @@ if(args[1]=="show") then
     if(db[args[2]]) then
         local this_info=db[args[2]]
         print("Name: " .. args[2])
-        if(this_info.deprecated) then 
-            print("Title: [Deprecated] " .. this_info.title)
-        else
-            print("Title: " .. this_info.title)
-        end
+        print("Title: " .. this_info.title)
+        if(this_info.deprecated) then print("Deprecated: Yes") end
+        if(IsOfficial(this_info)) then print("Type: Official")
+        else print("Type: Unofficial") end
         print("Info: " .. this_info.info)
         if(this_info.author) then print("Author: " .. this_info.author) end
         if(this_info.contact) then print("Contact: " .. this_info.contact) end
@@ -535,6 +761,11 @@ if(args[1]=="show") then
 
         if(this_info.precheck) then print("Precheck: Yes") end
         if(this_info.installer) then print("Installer: Yes") end
+        if(this_info.proxy) then print("Proxy: Yes") end
+
+        if(this_info.license) then
+            print("License: " .. this_info.license.name)
+        end
     else
         print("Library " .. args[2] .. " not found.")
     end
