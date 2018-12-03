@@ -17,7 +17,7 @@ modem.broadcast(98,'modem=component.proxy(component.list("modem")())')
 print('Done')
 
 term.clear()
-print('Drone Debug Console v1.4.3-beta')
+print('Drone Debug Console v1.4.4-beta')
 print('Command Prompt (Ctrl+D to exit)')
 
 local function SetResponse(msg)
@@ -153,8 +153,21 @@ while true do
     if(str==nil) then break end 
 
     if(string.sub(str,1,1)=='>') then -- Execute it on this machine
-        local ok,err=pcall(load(string.sub(str,2)))
-        if(not ok or err~=nil) then 
+        local ok,err=pcall(function() 
+            local fn,err=load(string.sub(str,2))
+            if(not fn) then
+                SetResponse("[Local] SyntaxError: " .. err)
+            else
+                local res=fn()
+                if(res) then
+                    -- type(res) might be "table", which will raise an error here and shutdown the drone console.
+                    -- So call it in pcall.
+                    SetResponse("[Local] " .. res)
+                end
+            end
+        end)
+
+        if(not ok) then 
             SetResponse("[Local] " .. err)
         end
     else
