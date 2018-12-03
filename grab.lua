@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.2-alpha"
+local grab_version="Grab v2.4.3-alpha"
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
@@ -18,8 +18,10 @@ Options:
     --cn Use mirror site in China. By default grab will download from Github. This might be useful for only official packages.
     --help Display this help page.
     --version Display version and exit.
-    --proxy=<Proxy File> Given a proxy file which will be loaded and returns a proxy function like:
+    --router=<Router File> Given a file which will be loaded and returns a route function like:
         function(RepoName: string, Branch: string ,FileAddress: string): string
+    --proxy=<Proxy File> Given a file which will be loaded and returns a proxy function like:
+        function(Url : string): boolean, string
     --skip-install Library installers will not be executed.
     --refuse-license <License> Set refused license. Separate multiple values with ','
     --accept-license <License> Set accepted license. Separate multiple values with ','
@@ -49,10 +51,21 @@ Notice:
         A package is considered to be official only if it does not specified repo and proxy. Official packages usually only depend on official packages.
         You can also install packages from unofficial program provider with Grab, but Grab will not check its security.
         Notice that override of official packages is not allowed.
+    Router and Proxy
+        route_func(RepoName: string, Branch: string ,FileAddress: string): string
+            A route function takes repo, branch and file address as arguments, and returns a resolved url.
+            It can be used to boost downloading by redirecting requests to mirror site.
+            As router functions can be used to redirect requests, Grab will give an warning if --router option presents.
+        proxy_func(Url : string): boolean, string
+            A proxy function takes url as argument, and returns at least 2 values.
+            It can be used to handle different protocols or low-level network operations like downloading files via SOCKS5 proxy or in-game modem network.
+            The first returned value is true if content is downloaded successfully. Thus, the second value will be the downloaded content.
+            If the first value is false, the downloading is failed. The second value will then be the error message.
+            If proxy functions throw an error, Grab will try the default downloader.
 ]===]
 
 -- Install man document
-if(not filesystem.exists("/etc/grab/grab.version")) then
+local function _update_document()
     local f=io.open("/etc/grab/grab.version","w")
     if(f) then
         f:write(grab_version)
@@ -63,17 +76,16 @@ if(not filesystem.exists("/etc/grab/grab.version")) then
         f:write(usage_text)
         f:close()
     end
+end
+if(not filesystem.exists("/etc/grab/grab.version")) then
+    _update_document()
 else
     local f=io.open("/etc/grab/grab.version","r")
     if(f) then
         local installed_version=f:read("a")
         f:close()
         if(installed_version~=grab_version) then
-            f=io.open("/usr/man/grab","w")
-            if(f) then
-                f:write(usage_text)
-                f:close()
-            end
+            _update_document()
         end
     end
 end
@@ -95,7 +107,8 @@ local valid_options={
     ["cn"]=true, 
     ["help"]=true, 
     ["version"]=true, 
-    ["proxy"]=true, 
+    ["router"]="string",
+    ["proxy"]="string", 
     ["skip-install"]=true, 
     ["refuse-license"]=true,
     ["accept-license"]=true
@@ -112,26 +125,23 @@ local valid_command={
     ["download"]=true
 }
 
-local nOptions=0
 for k,v in pairs(options) do 
     if(not valid_options[k]) then 
-        if(string.len(k)>1) then print("Unknown option: --" .. k)
-        else print("Unknown option: -" .. k) end
+        if(string.len(k)>1) then
+            print("Unknown option: --" .. k)
+        else
+            print("Unknown option: -" .. k) 
+        end
         return
-    end
-    nOptions=nOptions+1 
-end
-
-local function check_internet()
-    if(component.internet==nil) then
-        print("Error: An internet card is required to run this program.")
-        return false
-    else
-        return true
+    elseif(type(valid_options[k])=="string") then
+        if(type(options[k])~=valid_options[k]) then
+            print("Invalid option type: Option type of --" .. k .. " should be " .. valid_options[k])
+            return
+        end
     end
 end
 
-if( (#args<1 and nOptions<1) or options["help"]) then
+if( (#args<1 and not next(options)) or options["help"]) then
     show_usage()
     return
 end
@@ -141,10 +151,21 @@ if(options["version"]) then
     return
 end
 
-local function download(url)
-    if(component.internet==nil) then
-        error("This program requires an Internet card.")
+local function check_internet()
+    if(not options["proxy"] and not component.internet) then
+        print("Error: An internet card is required to run this program.")
+        return false
+    else
+        -- If proxy presents, internet card is not required. Programs may handle network requests via in-game modem network.
+        return true
     end
+end
+
+local function default_downloader(url)
+    if(not component.internet) then
+        return false,"No internet card found."
+    end
+
     local handle=component.internet.request(url)
     while true do
         local ret,err=handle.finishConnect()
@@ -160,18 +181,26 @@ local function download(url)
             end
         end
     end
+
     local code=handle.response()
+    if(code~=200) then
+        handle.close()
+        return false,"Response code " .. code .. " is not 200."
+    end
+
     local result=''
     while true do 
         local temp=handle.read()
         if(temp==nil) then break end
         result=result .. temp
     end
+
     handle.close()
-    return true,result,code
+    return true,result
 end
+
 local UrlGenerator
-if(not options["proxy"]) then
+if(not options["router"]) then
     if(not options["cn"]) then 
         UrlGenerator=function(RepoName,Branch,FileAddress)
             return "https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
@@ -183,19 +212,60 @@ if(not options["proxy"]) then
     end
 else
     local ok,err=pcall(function()
+        local fn,xerr=loadfile(options["router"])
+        if(not fn) then 
+            error(xerr) 
+        else 
+            UrlGenerator=fn()
+            if(type(UrlGenerator)~="function") then
+                error("Loaded router returns " .. type(UrlGenerator) .. " instead of a function.")
+            end
+        end
+    end)
+    if(not ok) then
+        print("Unable to load router file: " .. err)
+        return
+    end
+
+    print("[WARN] Router presents. Be aware of security issues.")
+end
+local download
+if(not options["proxy"]) then
+    download=default_downloader
+else
+    local ok,err=pcall(function()
         local fn,xerr=loadfile(options["proxy"])
-        if(not fn) then error(xerr) 
-        else UrlGenerator=fn() end
+        if(not fn) then 
+            error(xerr) 
+        else 
+            download=fn()
+            if(type(download)~="function") then
+                error("Loaded proxy returns " .. type(download) .. " instead of a function.")
+            end
+        end
     end)
     if(not ok) then
         print("Unable to load proxy file: " .. err)
         return
     end
+
+    print("[WARN] Proxy presents. Be aware of security issues.")
 end
 
 local function IsOfficial(tb_package)
-    if(tb_package.repo==nil and tb_package.proxy==nil) then
+    if(tb_package.repo==nil and 
+        tb_package.proxy==nil and 
+        tb_package.provider==nil
+    ) then
         return true
+    else
+        return false
+    end
+end
+
+local function IsTrusted(tb_package)
+    if(tb_package.provider) then
+        -- TODO: Check Provider by comparing with online trusted list.
     else
         return false
     end
@@ -355,11 +425,9 @@ if(args[1]=="update") then
 
     print("Updating programs info....")
     io.write("Downloading... ")
-    local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master","programs.info"))
+    local ok,result=download(UrlGenerator("Kiritow/OpenComputerScripts","master","programs.info"))
     if(not ok) then
         print("[Failed] " .. result)
-    elseif(code~=200) then
-        print("[Failed] response code " .. code .. " is not 200.")
     else
         print("[OK]")
         io.write("Validating... ")
@@ -422,11 +490,9 @@ if(args[1]=="verify") then
             end
         else
             print("Downloading from " .. url)
-            local ok,result,code=download(url)
+            local ok,result=download(url)
             if(not ok) then
                 print("[Download Failed] " .. result)
-            elseif(code~=200) then
-                print("[Download Failed] Response code is not 200 but " .. code)
             else
                 local t,err=CheckAndLoad("return " .. result)
                 if(t) then 
@@ -481,11 +547,9 @@ if(args[1]=="add") then
             end
         else
             print("Downloading from " .. url)
-            local ok,result,code=download(url)
+            local ok,result=download(url)
             if(not ok) then
                 print("[Download Failed] " .. result)
-            elseif(code~=200) then
-                print("[Download Failed] Response code is not 200 but " .. code)
             else
                 local t,err=CheckAndLoad("return " .. result)
                 if(t) then 
@@ -635,8 +699,8 @@ if(args[1]=="install") then
             else
                 -- Download the license and show it to user.
                 print("Downloading license " .. db[this_lib].license.name .. " for library " .. this_lib .. " from: " .. db[this_lib].license.url)
-                local ok,result,code=download(db[this_lib].license.url)
-                if(not ok or code~=200) then
+                local ok,result=download(db[this_lib].license.url)
+                if(not ok) then
                     print("[Download Failed] Unable to download license.")
                     return
                 end
@@ -717,13 +781,10 @@ if(args[1]=="install") then
             else
                 this_url=UrlGenerator(db[this_lib].repo or "Kiritow/OpenComputerScripts",db[this_lib].branch or "master",toDownload)
             end
-            local ok,result,code=download(this_url)
+            local ok,result=download(this_url)
             if(not ok) then 
                 print("[Download Failed] " .. result)
                 return
-            elseif(code~=200) then
-                print("[Download Failed] response code " .. code .. " is not 200.")
-                return 
             else
                 count_byte=count_byte+string.len(result)
                 if(type(v)=="string") then
@@ -860,13 +921,10 @@ if(args[1]=="download") then
 
     for i=1,#files,1 do
         io.write("[" .. i .. "/" .. #files .. "] Downloading " .. files[i] .. "...")
-        local ok,result,code=download(UrlGenerator("Kiritow/OpenComputerScripts","master",files[i]))
+        local ok,result=download(UrlGenerator("Kiritow/OpenComputerScripts","master",files[i]))
         if(not ok) then 
             print("[Download Failed] " .. result)
             return
-        elseif(code~=200) then
-            print("[Download Failed] response code " .. code .. " is not 200.")
-            return 
         else
             local f,ferr=io.open(files[i],"w")
             if(not f) then
