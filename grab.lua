@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.3-alpha"
+local grab_version="Grab v2.4.4-alpha"
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
@@ -152,7 +152,7 @@ if(options["version"]) then
 end
 
 local function check_internet()
-    if(not options["proxy"] and not component.internet) then
+    if(not options["proxy"] and not component.list("internet")()) then
         print("Error: An internet card is required to run this program.")
         return false
     else
@@ -162,7 +162,7 @@ local function check_internet()
 end
 
 local function default_downloader(url)
-    if(not component.internet) then
+    if(not component.list("internet")()) then
         return false,"No internet card found."
     end
 
@@ -229,6 +229,7 @@ else
 
     print("[WARN] Router presents. Be aware of security issues.")
 end
+
 local download
 if(not options["proxy"]) then
     download=default_downloader
@@ -238,9 +239,17 @@ else
         if(not fn) then 
             error(xerr) 
         else 
-            download=fn()
-            if(type(download)~="function") then
-                error("Loaded proxy returns " .. type(download) .. " instead of a function.")
+            tmp=fn()
+            if(type(tmp)~="function") then
+                error("Loaded proxy returns " .. type(tmp) .. " instead of a function.")
+            end
+            download=function(url)
+                local pok,ok,data=pcall(tmp,url)
+                if(pok) then 
+                    return ok,data
+                else
+                    return default_downloader(url)
+                end
             end
         end
     end)
@@ -266,6 +275,7 @@ end
 local function IsTrusted(tb_package)
     if(tb_package.provider) then
         -- TODO: Check Provider by comparing with online trusted list.
+        return false
     else
         return false
     end
@@ -298,7 +308,7 @@ local function VerifyDB(this_db)
                     return false,"Library " .. k .. " file " .. kk .. " has invalid value type " .. type(vv)
                 end
             else
-                return fale,"Library " .. k .. " file has invalid key type " .. type(kk)
+                return false,"Library " .. k .. " file has invalid key type " .. type(kk)
             end
         end
         if(t.requires) then
@@ -313,6 +323,11 @@ local function VerifyDB(this_db)
                 return false,"Library " .. k .. " has invalid license name type " .. type(t.license.name)
             elseif(type(t.license.url)~="string") then
                 return false,"Library " .. k .. " has invalid license url type " .. type(t.license.url)
+            end
+        end
+        if(t.provider) then
+            if(type(t.provider)~="string") then
+                return false,"Library " .. k .. " has invalid provider type " .. type(t.provider)
             end
         end
     end
@@ -894,6 +909,7 @@ if(args[1]=="show") then
         if(this_info.precheck) then print("Precheck: Yes") end
         if(this_info.installer) then print("Installer: Yes") end
         if(this_info.proxy) then print("Proxy: Yes") end
+        if(this_info.provider) then print("Provider: " .. this_info.provider) end
 
         if(this_info.license) then
             print("License: " .. this_info.license.name)

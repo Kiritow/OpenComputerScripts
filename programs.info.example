@@ -1,0 +1,78 @@
+{
+    -- This is an example of programs list.
+    -- Please don't include any comments in distributed programs list.
+
+    -- This file contains a table.
+    -- Each key of it is considered as a package id. Its type must be "string".
+    -- Each element of it is considered as a package info. Its type must be "table".
+    -- The package id should not contain space characters.
+    -- The package id should be unique. Packages info with the same package id will be overwritten.
+    
+    ["PackageNameHere"]={
+        title="Long package name here",
+        info="A short information which will be shown when `grab show PackageNameHere` is called",
+        
+        files={
+            -- Key is number, and value is string. File $value will be downloaded to current directory and named $value.
+            "somefile.lua",
+
+            -- Key is string, and value is string. File $key will be downloaded to $value.
+            ["anotherfile.lua"]="/tmp/place_it_here.lua",
+
+            -- Key is string, and value is table. 
+            -- File $key will be downloaded and Grab will try to save it as an element specified in $value.
+            ["otherfile.lua"]={ 
+                "/etc/somedir/some_name.lua",
+                "/tmp/another_name.lua",
+            },
+
+            -- file can also be placed in directory
+            "placed/here/my_source.lua"
+        },
+
+        -- Optional.
+        -- Place depended library id here.
+        requires={
+            "libevent"
+        },
+
+        -- Optional. Used by `grab show`.
+        author="Author name here",
+        contact="Author contact here",
+
+        -- Optional
+        -- Fill this field if this package is stored in another repository on Github.
+        repo="Maybe/AnotherRepo",
+
+        -- Optional
+        -- Fill this field if this package is stored in another branch of the repository on Github.
+        branch="branch_name_here",
+
+        -- Optional
+        -- If presents, Grab will follow it to generate downloading url.
+        -- __repo__ will be replaced by repo or Official OpenComputerScripts repository name.
+        -- __branch__ will be replaced by branch or "master"
+        -- __file__ will be replaced by name of downloaded files.
+        proxy="http://SomeServer.com/__repo__/__branch__/__file__",
+
+        -- Optional
+        -- If presents, Grab will load and run it after downloading.
+        -- The installer must be in files table.
+        installer="somefile.lua",
+
+        -- Optional (but important)
+        -- If presents, Grab will ask user to agree with it before downloading files.
+        -- If not presents, the package is considered under The Unlicense (http://unlicense.org/)
+        -- Notice that all files in Official OpenComputerScripts repository is under the MIT License (https://github.com/Kiritow/OpenComputerScripts/blob/master/LICENSE)
+        license={
+            name="MIT",
+            url="Url to the license file"
+        }
+    },
+
+    ["AnotherPackage"]={
+        ...
+    },
+
+    ...
+}
