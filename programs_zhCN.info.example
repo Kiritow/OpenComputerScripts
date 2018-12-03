@@ -1,0 +1,80 @@
+{
+    -- 这是一份程序列表样例
+    -- 在您的发布版程序列表中,请不要添加任何注释
+
+    -- 此文件包含一个表
+    -- 表中每个键被当作包标识符(包名). 键必须是字符串.
+    -- 表中每个值被当作对应包的信息. 值必须是表.
+    -- 包标识符(包名)不应包含空格符.
+    -- 包标识符(包名)应是唯一的. 具有相同包标识符的信息会被覆盖.
+
+    -- 特别提示: 请不要使用中文作为包标识符. 此文件只是个样例.
+    
+    ["填入包标识符"]={
+        title="在这里写入包的全名",
+        info="此处填写包的基本信息. grab show会展示这些信息.",
+        
+        files={
+            -- 键是数字, 值是字符串. 值指定的文件会被下载到当前文件夹并命名为值.
+            "somefile.lua",
+
+            -- 键是字符串, 值是字符串. 键指定的文件会被下载到值指定的位置.
+            ["anotherfile.lua"]="/tmp/place_it_here.lua",
+
+            -- 键是字符串, 值是表.
+            -- 键指定的文件将被下载，并尝试存入从值表第一个开始指定的位置.
+            ["otherfile.lua"]={ 
+                "/etc/somedir/some_name.lua",
+                "/tmp/another_name.lua",
+            },
+
+            -- 文件名也可以包含路径信息.
+            "placed/here/my_source.lua"
+        },
+
+        -- 可选.
+        -- 在此处填写依赖的包标识符(包名)
+        requires={
+            "libevent"
+        },
+
+        -- 可选. `grab show`会展示这些信息.
+        author="作者",
+        contact="联系方式",
+
+        -- 可选
+        -- 当包在Github上的其他仓库时, 指定此字段.
+        repo="用户/仓库",
+
+        -- 可选
+        -- 当包在Github上的仓库的其他分支时, 指定此字段.
+        branch="分支名称",
+
+        -- 可选
+        -- 如果此字段存在, Grab会使用其来生成Url. (这会覆盖命令行中指定的路由函数)
+        -- __repo__ 会被替换为repo字段或官方仓库名.
+        -- __branch__ 会被替换为branch字段或"master"
+        -- __file__ 会被替换为下载的文件名.
+        proxy="http://SomeServer.com/__repo__/__branch__/__file__",
+
+        -- 可选
+        -- 如果此字段存在, 在文件下载完成后, 其将被载入并执行
+        -- 安装脚本必须包含在files表中.
+        installer="somefile.lua",
+
+        -- 可选 (但很重要)
+        -- 如果此字段存在, Grab会询问用户是否同意指定的协议.
+        -- 如果此字段不存在, 该包将被认为基于 The Unlicense (http://unlicense.org/) 协议.
+        -- 需要注意的是所有官方库的文件都基于 MIT协议 (https://github.com/Kiritow/OpenComputerScripts/blob/master/LICENSE)
+        license={
+            name="MIT",
+            url="协议的具体地址"
+        }
+    },
+
+    ["另外一个包"]={
+        ...
+    },
+
+    ...
+}

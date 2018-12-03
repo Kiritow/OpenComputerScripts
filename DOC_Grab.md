@@ -50,7 +50,7 @@
 
 **verify \<Provider> ...**
 
-     Verify program provider info.
+    Verify program provider info.
 
 **add \<Provider> ...**
 
@@ -90,7 +90,7 @@ All scripts in official OpenComputerScript repository are under MIT license.
 
 Before downloading any package under other licenses, Grab will ask you to agree with it.
 
-This confirmation can be skipped by calling Grab with --accept-license.
+This confirmation can be skipped by calling Grab with `--accept-license`.
 
 Example:
 
@@ -106,6 +106,7 @@ If a license is both accepted and refused, it will be refused.
 A package is considered to be official only if it does not specified repo and proxy. Official packages usually only depend on official packages.
 
 You can also install packages from unofficial program provider with Grab, but Grab will not check its security.
+
 Notice that override of official packages is not allowed.
 
 #### Router and Proxy
@@ -115,7 +116,7 @@ Notice that override of official packages is not allowed.
 A route function takes repo, branch and file address as arguments, and returns a resolved url.
 It can be used to boost downloading by redirecting requests to mirror site.
 
-As router functions can be used to redirect requests, Grab will give an warning if --router option presents.
+As router functions can be used to redirect requests, Grab will give an warning if `--router` option presents.
 
     proxy_func(Url : string): boolean, string
 
@@ -128,6 +129,8 @@ The first returned value is true if content is downloaded successfully. Thus, th
 If the first value is false, the downloading is failed. The second value will then be the error message.
 
 If proxy functions throw an error, Grab will try the default downloader.
+
+As proxy functions can handle low-level network operations, Grab will give an warning if `--proxy` option presents.
 
 ## Explaination of programs list
 
