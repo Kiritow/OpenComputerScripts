@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.1-alpha"
+local grab_version="Grab v2.4.2-alpha"
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
@@ -25,6 +25,7 @@ Options:
     --accept-license <License> Set accepted license. Separate multiple values with ','
 Command:
     install <Project> ...: Install projects. Dependency will be downloaded automatically.
+    verify <Provider> ... : Verify program provider info.
     add <Provider> ... : Add program provider info.
     update: Update program info.
     clear: Clear program info.
@@ -101,6 +102,7 @@ local valid_options={
 }
 local valid_command={
     ["install"]=true,
+    ["verify"]=true,
     ["add"]=true,
     ["update"]=true,
     ["clear"]=true,
@@ -390,6 +392,56 @@ local function check_db()
         print("Please run `grab update` first.")
         return false 
     end
+end
+
+if(args[1]=="verify") then
+    if(#args<2) then
+        print("Nothing to verify.")
+        return
+    end
+
+    for i=2,#args,1 do
+        local url=string.match(args[i],"^http[s]?://%S+")
+        if(url==nil) then 
+            local filename=args[i]
+            local f=io.open(filename,"r")
+            if(not f) then
+                print("Unable to open local file: " .. filename)
+            else
+                local content=f:read("*a")
+                f:close()
+                local t,err=CheckAndLoad("return " .. content)
+                if(t) then 
+                    print("[Verified] Contains the following library: ")
+                    for k in pairs(t) do
+                        print(k)
+                    end
+                else
+                    print("Failed to load local file: " .. filename .. ". Error: " .. err)
+                end
+            end
+        else
+            print("Downloading from " .. url)
+            local ok,result,code=download(url)
+            if(not ok) then
+                print("[Download Failed] " .. result)
+            elseif(code~=200) then
+                print("[Download Failed] Response code is not 200 but " .. code)
+            else
+                local t,err=CheckAndLoad("return " .. result)
+                if(t) then 
+                    print("[Verified] Contains the following library: ")
+                    for k in pairs(t) do
+                        print(k)
+                    end
+                else
+                    print("Failed to load downloaded content. Error: " .. err)
+                end
+            end
+        end
+    end
+
+    return
 end
 
 if(args[1]=="add") then 
@@ -698,7 +750,7 @@ if(args[1]=="install") then
                     end
                     if(not success) then
                         print("[Error] Unable to write file: " .. toDownload)
-                        return 
+                        return
                     end
                 end
             end
@@ -760,6 +812,7 @@ if(args[1]=="show") then
     if(not check_db()) then return end
     if(#args<2) then
         print("Nothing to show.")
+        return
     end
 
     if(db[args[2]]) then
