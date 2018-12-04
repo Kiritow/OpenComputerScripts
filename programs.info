@@ -69,6 +69,13 @@
             "shrink.lua"
         }
     },
+    ["libhuffman"]={
+        title="Huffman compression library",
+        info="Inflate and deflate in Huffman algorithm.",
+        files={
+            "libhuffman.lua"
+        }
+    },
     ["drone"]={
         title="Drone",
         info="Drone console and bios",
