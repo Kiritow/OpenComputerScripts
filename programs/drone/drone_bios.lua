@@ -1,4 +1,4 @@
-drone_version="Drone v3.3c"
+drone_version="Drone v3.3d"
 drone=component.proxy(component.list("drone")())
 modem=component.proxy(component.list("modem")())
 drone.setStatusText(drone_version .. '\n' .. modem.address)
@@ -6,7 +6,7 @@ modem.open(98)
 H={["_anything"]={}}
 T={}
 W={}
-local coC,coT,coY,coR,upt,tbI,tbR=coroutine.create,coroutine.running,coroutine.yield,coroutine.resume,computer.uptime(),table.insert,table.remove
+local coC,coT,coY,coR,upt,tbI,tbR=coroutine.create,coroutine.running,coroutine.yield,coroutine.resume,computer.uptime,table.insert,table.remove
 handle_event=function(e)
     if(H[e[1]]) then 
         for i,tb in pairs(H[e[1]]) do 

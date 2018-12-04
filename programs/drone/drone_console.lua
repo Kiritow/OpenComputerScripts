@@ -17,7 +17,7 @@ modem.broadcast(98,'modem=component.proxy(component.list("modem")())')
 print('Done')
 
 term.clear()
-print('Drone Debug Console v1.4.4-beta')
+print('Drone Debug Console v1.4.5-beta')
 print('Command Prompt (Ctrl+D to exit)')
 
 local function SetResponse(msg)
@@ -80,7 +80,8 @@ local function add_ping_timer()
             term.setCursor(a,b)
         end
 
-        modem.broadcast(98,"execute_command","modem.send('" .. modem.address .. "',99,'console_info',drone.getOffset(),computer.energy())")
+        -- Broadcast and send use the same amount of power, so just broadcast.
+        modem.broadcast(98,"execute_command","modem.broadcast(99,'drone_info',drone.getOffset(),computer.energy())")
     end,-1)
 end
 
@@ -91,18 +92,18 @@ helper={}
 function helper.setRadar(enable)
     if(enable) then
         if(timer>0) then
-            return "Radar is already on."
+            return "Active Radar is already on."
         else
             timer=add_ping_timer()
-            return "Radar switched on."
+            return "Active Radar switched on."
         end        
     else
         if(timer>0) then
             RemoveTimer(timer)
             timer=0
-            return "Radar switched off."
+            return "Active Radar switched off."
         else
-            return "Radar is already off."
+            return "Active Radar is already off."
         end
     end
 end

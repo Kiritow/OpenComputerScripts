@@ -1,4 +1,4 @@
--- Drone Radar
+-- Passive Drone Radar
 -- Created by Kiritow.
 local component=require('component')
 local computer=require('computer')
@@ -7,7 +7,7 @@ local text=require('text')
 
 require("libevent")
 
-local radar_version="Drone Radar v0.1.4"
+local radar_version="Passive Drone Radar v0.1.5"
 local modem=component.modem
 local gpu=term.gpu()
 
@@ -32,16 +32,11 @@ if(not modem.open(99)) then
         return
     end
 end
-print("Adding timer...")
-local broadcast_intv=8
-local timer=AddTimer(broadcast_intv,function()
-    modem.broadcast(98,"execute_command","modem.send('" .. modem.address .. "',99,'radar_info',drone.getOffset(),computer.energy())")
-end,-1)
 print("Adding listener...")
 local tb_drone_old={}
 local tb_drone_new={}
 local listener=AddEventListener("modem_message",function(e)
-    if(e.port==99 and e.data[1]=='radar_info') then
+    if(e.port==99 and e.data[1]=='drone_info') then
         tb_drone_old[e.senderAddress]=tb_drone_new[e.senderAddress]
         tb_drone_new[e.senderAddress]={
             distance=e.distance,
@@ -87,9 +82,9 @@ while true do
             else
                 if(tb_drone_old[addr]) then
                     local diff=tb_drone_new[addr].distance-tb_drone_old[addr].distance
-                    if(diff<0) then
+                    if(diff>0) then
                         newt[2]="[Flying away]"
-                    elseif(diff>0) then
+                    elseif(diff<0) then
                         newt[2]="[Flying in]"
                     end
                 else
@@ -112,7 +107,5 @@ end
 term.clear()
 print("Stopping listener...")
 RemoveEventListener(listener)
-print("Stopping timer...")
-RemoveTimer(timer)
 print("Closing port...")
 modem.close(99)
