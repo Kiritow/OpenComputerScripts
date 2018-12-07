@@ -36,7 +36,7 @@ end
 local last_response=computer.uptime()
 
 local listener=AddEventListener("modem_message",function(e) 
-    if(e.data[1]~=nil and e.data[1]=='console_info') then
+    if(e.data[1]~=nil and e.data[1]=='drone_info') then
         last_response=computer.uptime()
 
         local a,b=term.getCursor()
@@ -141,6 +141,15 @@ function helper.install_step2()
         os.sleep(1)
         SetResponse("[Local] Install step 2: Sending data to " .. helper.target_drone)
         modem.send(helper.target_drone,98,"execute_command",helper.drone_lib)
+        return true
+    else
+        return false
+    end
+end
+
+function helper.install()
+    if(helper.install_step1()) then
+        helper.install_step2()
     end
 end
 

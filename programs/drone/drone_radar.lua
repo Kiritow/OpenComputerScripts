@@ -47,6 +47,10 @@ local listener=AddEventListener("modem_message",function(e)
         PushEvent("radar_gui_update")
     end
 end)
+print("Adding update timer...")
+local timer=AddTimer(5,function()
+    PushEvent("radar_gui_update")
+end,-1)
 
 local function show_tb(gpu,tb)
     local maxLen={}
@@ -73,10 +77,17 @@ while true do
     gpu.fill(1,2,w,h-1,' ')
     local now=computer.uptime()
     local show={}
-    table.insert(show,{"Address","Status","Distance","Offset","Energy"})
+    table.insert(show,{"Address","Status","Distance","Offset","Energy","LastUpdated"})
     for addr,tb in pairs(tb_drone_new) do
-        local newt={string.sub(addr,1,8),"[Missing]",string.format("%.1f",tb.distance),string.format("%.1f",tb.offset),string.format("%.1f",tb.energy)}
-        if(now-tb.update<broadcast_intv) then 
+        local newt={
+            string.sub(addr,1,8),
+            "[Missing]",
+            string.format("%.1f",tb.distance),
+            string.format("%.1f",tb.offset),
+            string.format("%.1f",tb.energy),
+            string.format("%.0fs",now-tb.update)
+        }
+        if(now-tb.update<30) then 
             if(tb.offset<1) then
                 newt[2]="[OK]"
             else
@@ -94,7 +105,7 @@ while true do
         end
         table.insert(show,newt)
 
-        if(now-tb.update>broadcast_intv*2.5) then
+        if(now-tb.update>60) then
             tb_drone_new[addr]=nil
             tb_drone_old[addr]=nil
         end
