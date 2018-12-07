@@ -19,6 +19,14 @@
             -- Key is string, and value is string. File $key will be downloaded to $value.
             ["anotherfile.lua"]="/tmp/place_it_here.lua",
 
+            -- Key is string, and value is string. If $value ends with '/', then $key will be downloaded to $value+$key.
+            -- In this case, data will be downloaded to /tmp/some/dir/thisfile.lua.
+            ["thisfile.lua"]="/tmp/some/dir/",
+
+            -- Source file can also be placed in other directory.
+            -- In this case, data will be downloaded to /tmp/this/dir/thisfile.lua.
+            ["placed/here/thisfile.lua"]="/tmp/this/dir",
+
             -- Key is string, and value is table. 
             -- File $key will be downloaded and Grab will try to save it as an element specified in $value.
             ["otherfile.lua"]={ 
@@ -26,8 +34,9 @@
                 "/tmp/another_name.lua",
             },
 
-            -- file can also be placed in directory
-            "placed/here/my_source.lua"
+            -- Key is string, and value is __installer__.
+            -- File $key will be downloaded and saved as a temporary file. It will be deleted after installation.
+            ["package_installer.lua"]="__installer__",
         },
 
         -- Optional.
@@ -54,6 +63,10 @@
         -- __branch__ will be replaced by branch or "master"
         -- __file__ will be replaced by name of downloaded files.
         proxy="http://SomeServer.com/__repo__/__branch__/__file__",
+
+        -- Optional
+        -- If set to true, `grab list` will not show up this library. Default to false.
+        hidden=false,
 
         -- Optional
         -- If presents, Grab will load and run it after downloading.

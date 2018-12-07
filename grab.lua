@@ -9,7 +9,10 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.5-alpha"
+local grab_version="Grab v2.4.6.4-alpha"
+local grab_version_info={
+    version=grab_version
+}
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
@@ -623,6 +626,41 @@ local function getshowtime(n)
     end
 end
 
+local function getshowspeed(n)
+    if(n<1024) then
+        return string.format("%.1f B/s",n+0.0)
+    elseif(n<1024*1024) then
+        return string.format("%.1f KB/s",n/1024)
+    else
+        return string.format("%.1f MB/s",n/1024/1024)
+    end
+end
+
+local function try_resolve_path(src,dst)
+    -- TIPS:
+    -- filesystem.makeDirectory(...) can throw error because it does not check arguments.
+
+    if(dst:sub(dst:len())=='/') then -- dst is a directory.
+        if(not filesystem.makeDirectory(dst) and not filesystem.exists(dst)) then
+            return false,"Failed to create directory: " .. dst
+        else
+            local tb_segsrc=filesystem.segments(src)
+            local src_name=tb_segsrc[#tb_segsrc]
+            return true,dst .. src_name
+        end
+    else -- dst is the filename
+        local tb_segdst=filesystem.segments(src)
+        if(#tb_segdst>1) then
+            local name=table.concat(tb_segdst,"/",1,#tb_segdst-1)
+            if(not filesystem.makeDirectory(name) and not filesystem.exists(name)) then
+                return false,"Failed to create directory: " .. name
+            end
+        end
+
+        return true,dst
+    end
+end
+
 local function string_similar_value(a,b)
     local x,y=a:len(),b:len()
     local min=( (x>y) and y or x)
@@ -673,7 +711,7 @@ if(args[1]=="install") then
                 print("Library '" .. this_lib .. "' not found.")
                 local maybe_this=miss_suggestion(this_lib,db)
                 if(maybe_this) then
-                    print("You might want library " .. maybe_this)
+                    print("You might want library '" .. maybe_this .. "'.")
                 end
                 return
             else
@@ -796,7 +834,8 @@ if(args[1]=="install") then
                     end
                 end
 
-                os.execute("rm " .. temp_name)
+                filesystem.remove(temp_name)
+
                 if(confirmed==2) then
                     print("[License Refused] License " .. db[this_lib].license.name .. " for library " .. this_lib .. " is refused by user.")
                     return
@@ -807,11 +846,10 @@ if(args[1]=="install") then
         end
     end
 
-    local time_before=computer.uptime()
-
     print("Downloading...")
     local count_byte=0
     local id_installing=0
+    local time_before=computer.uptime()
     for this_lib in pairs(to_install) do
         for k,v in pairs(db[this_lib].files) do
             id_installing=id_installing+1
@@ -851,50 +889,114 @@ if(args[1]=="install") then
                 return
             else
                 count_byte=count_byte+string.len(result)
+                
                 if(type(v)=="string") then
-                    local f=io.open(v,"w")
-                    if(f==nil) then
-                        print("[Error] Unable to write to file " .. v)
+                    local toSave
+                    if(v=="__installer__") then
+                        toSave=os.tmpname()
+                        to_install[this_lib]=toSave
+                    else
+                        toSave=v
+                    end
+
+                    local ok,fname=try_resolve_path(toDownload,toSave)
+                    if(not ok) then
+                        print("[Error] " .. fname)
+                        return
+                    end
+
+                    local f=io.open(fname,"wb") -- 'w' or 'wb' ?
+                    if(not f) then
+                        print("[Error] Failed to open file " .. fname .. " for writing.")
                         return
                     else
-                        f:write(result)
+                        local ok,err=f:write(result)
                         f:close()
-                        print("[OK]")
-                    end
-                elseif(type(v)=="table") then
-                    local success=false
-                    for idx,value in ipairs(v) do
-                        local f=io.open(value,"w")
-                        if(f) then
-                            success=true
-                            f:write(result)
-                            f:close()
-                            print("[OK]")
-                            break
+                        if(not ok) then
+                            print("[Error] Failed while writing to file: " .. fname .. ": " .. err)
+                            return
                         end
                     end
-                    if(not success) then
-                        print("[Error] Unable to write file: " .. toDownload)
+                elseif(type(v)=="table") then
+                    local done=false
+                    
+                    for idx,this_name in ipairs(v) do
+                        local ok,fname=try_resolve_path(toDownload,this_name)
+                        if(ok) then
+                            local f=io.open(fname,"w") -- 'w' or 'wb' ?
+                            if(f) then
+                                local ok,err=f:write(result)
+                                f:close()
+                                if(not ok) then
+                                    print("[Error] Failed while writing to file: " .. fname .. ": " .. err)
+                                    return
+                                end
+
+                                done=true
+                                break
+                            end
+                        end
+                    end
+
+                    if(not done) then
+                        print("[Error] Unable to save file: " .. toDownload)
                         return
                     end
+                else
+                    print("[Error] Invalid program info value type: " .. type(v))
+                    return
                 end
+
+                -- [OK]
+                print("[" .. getshowbyte(string.len(result)) .. "]")
             end
         end
     end
-    print("Fetched " .. count_files .. " files (" .. getshowbyte(count_byte) .. ") in " .. getshowtime(computer.uptime()-time_before) .. ".")
+    local time_diff=computer.uptime()-time_before
+    print("Fetched " .. count_files .. " files (" 
+        .. getshowbyte(count_byte) .. ") in "
+        .. getshowtime(time_diff)
+        .. " (" .. getshowspeed(count_byte/time_diff) .. ")"
+    )
     if(not options["skip-install"]) then
         print("Installing...")
-        for this_lib in pairs(to_install) do
-            if(db[this_lib].installer) then
+        for this_lib,this_value in pairs(to_install) do
+            local this_installer
+            if(type(this_value)=="string") then
+                this_installer=this_value
+            elseif(db[this_lib].installer) then
+                this_installer=db[this_lib].installer
+            end
+
+            if(this_installer) then
+                local done=false
+
                 print("Running installer for " .. this_lib .. "...")
-                local fn,err=loadfile(db[this_lib].installer)
+                local fn,err=loadfile(this_installer)
                 if(not fn) then
                     print("[Installer Error]: " .. err)
                 else
                     local ok,xerr=pcall(fn)
                     if(not ok) then
                         print("[Installer Error]: " .. xerr)
+                    elseif(type(xerr)=="function") then
+                        if(not pcall(xerr,grab_version_info)) then
+                            print("[Installer Error]: " .. xerr)
+                        else
+                            done=true
+                        end
+                    else
+                        print("[Warn]: From Grab v2.4.6, installers should return functions.")
+                        done=true
                     end
+                end
+
+                if(type(this_value)=="string") then
+                    filesystem.remove(this_installer)
+                end
+
+                if(not done) then -- Failed to install.
+                    return
                 end
             end
         end
@@ -970,7 +1072,7 @@ if(args[1]=="show") then
         print("Library " .. args[2] .. " not found.")
         local maybe_this=miss_suggestion(this_lib,db)
         if(maybe_this) then
-            print("You might want library " .. maybe_this)
+            print("You might want library '" .. maybe_this .. "'.")
         end
     end
 
