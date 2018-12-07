@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.4-alpha"
+local grab_version="Grab v2.4.5-alpha"
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
@@ -304,16 +304,31 @@ local function VerifyDB(this_db)
                     return false,"Library " .. k .. " file " .. kk .. " has invalid value type " .. type(vv)
                 end
             elseif(type(kk)=="string") then
-                if(type(vv)~="string" and type(vv)~="table") then
+                if(type(vv)=="table") then
+                    for idx,val in pairs(vv) do
+                        if(type(idx)~="number" or type(val)~="string") then
+                            return false,"Library " .. k .. " file " .. kk .. " table has invalid key,value type: " .. type(idx) .. "," .. type(val)
+                        end
+                    end
+                elseif(type(vv)~="string") then
                     return false,"Library " .. k .. " file " .. kk .. " has invalid value type " .. type(vv)
                 end
             else
                 return false,"Library " .. k .. " file has invalid key type " .. type(kk)
             end
         end
+
+        if(t.author and type(t.author)~="string") then
+            return false,"Library " .. k .. " has invalid author type: " .. type(t.author)
+        end
+
+        if(t.contact and type(t.contact)~="string") then
+            return false,"Library " .. k .. " has invalid contact type: " .. type(t.contact)
+        end
+
         if(t.requires) then
             for kk,vv in pairs(t.requires) do
-                if(type(kk)~="number" and type(vv)~="string") then
+                if(type(kk)~="number" or type(vv)~="string") then
                     return false,"Library " .. k .. " has invalid requires with key type " .. type(kk) .. ", value type " .. type(vv)
                 end
             end
@@ -328,6 +343,11 @@ local function VerifyDB(this_db)
         if(t.provider) then
             if(type(t.provider)~="string") then
                 return false,"Library " .. k .. " has invalid provider type " .. type(t.provider)
+            end
+        end
+        if(t.hidden~=nil) then
+            if(type(t.hidden)~="boolean") then
+                return false,"Library " .. k .. " has invalid hidden type " .. type(t.hidden)
             end
         end
     end
@@ -603,6 +623,31 @@ local function getshowtime(n)
     end
 end
 
+local function string_similar_value(a,b)
+    local x,y=a:len(),b:len()
+    local min=( (x>y) and y or x)
+    local c=0
+    for i=1,min do
+        if(a:sub(i,i)==b:sub(i,i)) then
+            c=c+1
+        end
+    end
+    return c
+end
+
+local function miss_suggestion(wrong_name,ktb)
+    local max=0
+    local maxname=nil
+    for this_lib in pairs(ktb) do
+        local a=string_similar_value(wrong_name,this_lib)
+        if(a>max) then
+            max=a
+            maxname=this_lib
+        end
+    end
+    return maxname,max
+end
+
 if(args[1]=="install") then
     if(#args<2) then 
         print("Nothing to install.")
@@ -626,6 +671,10 @@ if(args[1]=="install") then
         for this_lib in pairs(to_install) do
             if(not db[this_lib]) then
                 print("Library '" .. this_lib .. "' not found.")
+                local maybe_this=miss_suggestion(this_lib,db)
+                if(maybe_this) then
+                    print("You might want library " .. maybe_this)
+                end
                 return
             else
                 if(db[this_lib].requires) then
@@ -861,7 +910,9 @@ if(args[1]=="list") then
 
     print("Listing projects...")
     for this_lib in pairs(db) do
-        print(this_lib)
+        if(not db[this_lib].hidden) then
+            print(this_lib)
+        end
     end
 
     return
@@ -909,6 +960,7 @@ if(args[1]=="show") then
         if(this_info.precheck) then print("Precheck: Yes") end
         if(this_info.installer) then print("Installer: Yes") end
         if(this_info.proxy) then print("Proxy: Yes") end
+        if(this_info.hidden) then print("Hidden: Yes") end
         if(this_info.provider) then print("Provider: " .. this_info.provider) end
 
         if(this_info.license) then
@@ -916,6 +968,10 @@ if(args[1]=="show") then
         end
     else
         print("Library " .. args[2] .. " not found.")
+        local maybe_this=miss_suggestion(this_lib,db)
+        if(maybe_this) then
+            print("You might want library " .. maybe_this)
+        end
     end
 
     return
@@ -956,10 +1012,13 @@ if(args[1]=="download") then
     return
 end
 
-
 -- reach here? 
 if(#args<1) then
     show_usage()
 else
     print("Unknown command: " .. args[1])
+    local maybe_this=miss_suggestion(args[1],valid_command)
+    if(maybe_this) then
+        print("Do you mean '" .. maybe_this .. "' ?")
+    end
 end
