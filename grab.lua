@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.6.4-alpha"
+local grab_version="Grab v2.4.7.3-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -65,6 +65,11 @@ Notice:
             The first returned value is true if content is downloaded successfully. Thus, the second value will be the downloaded content.
             If the first value is false, the downloading is failed. The second value will then be the error message.
             If proxy functions throw an error, Grab will try the default downloader.
+    Installer
+        A package can provide an installer for Grab. It will be loaded and executed after the package is ready.
+        Thus require(...) calls on depended libraries is ok.
+        From Grab v2.4.6, installer should return a function, which will be later called with a table filled with some information. (Currently, it contains version tag of Grab.)
+        If nothing is returned, Grab will give an warning and ignore it.
 ]===]
 
 -- Install man document
@@ -905,7 +910,7 @@ if(args[1]=="install") then
                         return
                     end
 
-                    local f=io.open(fname,"wb") -- 'w' or 'wb' ?
+                    local f=io.open(fname,"wb")
                     if(not f) then
                         print("[Error] Failed to open file " .. fname .. " for writing.")
                         return
@@ -923,7 +928,7 @@ if(args[1]=="install") then
                     for idx,this_name in ipairs(v) do
                         local ok,fname=try_resolve_path(toDownload,this_name)
                         if(ok) then
-                            local f=io.open(fname,"w") -- 'w' or 'wb' ?
+                            local f=io.open(fname,"wb")
                             if(f) then
                                 local ok,err=f:write(result)
                                 f:close()
@@ -960,44 +965,67 @@ if(args[1]=="install") then
     )
     if(not options["skip-install"]) then
         print("Installing...")
-        for this_lib,this_value in pairs(to_install) do
-            local this_installer
-            if(type(this_value)=="string") then
-                this_installer=this_value
-            elseif(db[this_lib].installer) then
-                this_installer=db[this_lib].installer
+        local has_installed={}
+        local recursion_detect={}
+        local do_install_dfs=function(this_lib)
+            if(recursion_detect[this_lib] or has_installed[this_lib]) then
+                return true
             end
+            recursion_detect[this_lib]=true
 
-            if(this_installer) then
-                local done=false
-
-                print("Running installer for " .. this_lib .. "...")
-                local fn,err=loadfile(this_installer)
-                if(not fn) then
-                    print("[Installer Error]: " .. err)
-                else
-                    local ok,xerr=pcall(fn)
-                    if(not ok) then
-                        print("[Installer Error]: " .. xerr)
-                    elseif(type(xerr)=="function") then
-                        if(not pcall(xerr,grab_version_info)) then
-                            print("[Installer Error]: " .. xerr)
-                        else
-                            done=true
-                        end
-                    else
-                        print("[Warn]: From Grab v2.4.6, installers should return functions.")
-                        done=true
+            if(db[this_lib].requires) then
+                for req_lib in ipairs(db[this_lib].requires) do
+                    if(not do_install_dfs(req_lib)) then -- Deeper Failure
+                        return false
                     end
                 end
+            end
 
-                if(type(this_value)=="string") then
-                    filesystem.remove(this_installer)
-                end
+            local this_installer
+            if(type(to_install[this_lib])=="string") then
+                this_installer=to_install[this_lib]
+            elseif(db[this_lib].installer) then
+                this_installer=db[this_lib].installer
+            else
+                -- No Installer: Mark as installed.
+                has_installed[this_lib]=true
+                recursion_detect[this_lib]=nil
+                return true
+            end
 
-                if(not done) then -- Failed to install.
-                    return
+            print("Running installer for " .. this_lib .. "...")
+            local fn,err=loadfile(this_installer)
+            if(not fn) then
+                print("[Installer Error]: " .. err)
+            else
+                local ok,xerr=pcall(fn)
+                if(not ok) then
+                    print("[Installer Error]: " .. xerr)
+                elseif(type(xerr)=="function") then
+                    if(not pcall(xerr,grab_version_info)) then
+                        print("[Installer Error]: " .. xerr)
+                    else
+                        has_installed[this_lib]=true
+                        done=true
+                    end
+                else
+                    print("[Warn]: From Grab v2.4.6, installers should return functions.")
+                    done=true
                 end
+            end
+
+            if(type(this_value)=="string") then -- This might be skipped?
+                filesystem.remove(this_installer)
+            end
+
+            recursion_detect[this_lib]=nil
+            return done
+        end -- end of local function do_install_dfs(...)
+
+        for this_lib in pairs(to_install) do
+            if(not do_install_dfs(this_lib)) then
+                print("Failed to install some library. Installation aborted.")
+                return
             end
         end
     else
