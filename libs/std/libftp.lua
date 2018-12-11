@@ -168,6 +168,16 @@ local function ftp_close(t)
     end
 end
 
+--[[
+Socket Adapter Requirements
+    A socket adapter should have the following methods:
+        create(): handle -- Create a TCP socket.
+        connect(h: handle, ip: string, port: number) -- Connect to server
+        send(h: handle, data: string) -- Send all part of data via socket.
+        read(h: handle, size: number) -- Read at most size byte of data. If socket is closed with nothing left, throws an exception.
+        close(h: handle) -- Clean up and close the socket.
+--]]
+
 local function FTP(socket_adapter)
     local t={}
     t.closed=false
