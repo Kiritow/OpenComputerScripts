@@ -49,14 +49,22 @@ local function ftp_pasv(t)
     return ip,port
 end
 
+local function ftp_tunnel(t)
+    if(t.tunnel) then
+        t.socket.close(t.tunnel)
+        t.tunnel=nil
+    end
+    t.tunnel=t.socket.create()
+end
+
 local function ftp_list(t)
     local ip,port=ftp_pasv(t)
 
     t.socket.send(t.handle,"LIST\r\n")
 
     -- Connect with tunnel here.
-    local tunnel=t.socket.create()
-    t.socket.connect(tunnel,ip,port)
+    ftp_tunnel(t)
+    t.socket.connect(t.tunnel,ip,port)
 
     local code,res=get_response(t.socket,t.handle)
     if(code~=150 and code~=125) then
@@ -65,19 +73,24 @@ local function ftp_list(t)
 
     local data=''
     pcall(function()
-        while true do data=data .. t.socket.read(tunnel,1024) end
+        while true do data=data .. t.socket.read(t.tunnel,1024) end
     end)
+
+    t.socket.close(t.tunnel)
+    t.tunnel=nil
 
     code,res=get_response(t.socket,t.handle)
     if(code~=226 and code~=250) then
         error("LIST data connection not finished." .. code)
     end
+
     return data
 end
 
-local function ftp_upload(t,local_filename,remote_filename)
+local function ftp_upload(t,local_filename,remote_filename,overwrite)
     assert(type(local_filename)=="string","Local filename should be string.")
     remote_filename=remote_filename or local_filename
+    overwrite=overwrite or false
     
     local f=io.open(local_filename,"rb")
     local data=f:read("a")
@@ -93,16 +106,17 @@ local function ftp_upload(t,local_filename,remote_filename)
 
     t.socket.send(t.handle,"STOR " .. remote_filename .. "\r\n")
     
-    local tunnel=t.socket.create()
-    t.socket.connect(tunnel,ip,port)
+    ftp_tunnel(t)
+    t.socket.connect(t.tunnel,ip,port)
 
-    local code,res=get_response(t.socket,t.handle)
+    code,res=get_response(t.socket,t.handle)
     if(code~=150 and code~=125) then
         error("STOR data connection not opened: " .. code)
     end
 
-    t.socket.send(tunnel,data)
-    t.socket.close(tunnel)
+    t.socket.send(t.tunnel,data)
+    t.socket.close(t.tunnel)
+    t.tunnel=nil
 
     code,res=get_response(t.socket,t.handle)
     if(code~=226 and code~=250) then
@@ -110,8 +124,48 @@ local function ftp_upload(t,local_filename,remote_filename)
     end
 end
 
+local function ftp_download(t,remote_filename,local_filename)
+    assert(type(remote_filename)=="string","Remote filename should be string.")
+    local_filename=local_filename or remote_filename
+
+    t.socket.send(t.handle,"TYPE I\r\n")
+    local code,res=get_response(t.socket,t.handle)
+    if(code~=200) then
+        error("Unable to switch TYPE.")
+    end
+
+    local ip,port=ftp_pasv(t)
+    t.socket.send(t.handle,"RETR " .. remote_filename .. "\r\n")
+
+    ftp_tunnel(t)
+    t.socket.connect(t.tunnel,ip,port)
+
+    code,res=get_response(t.socket,t.handle)
+    if(code~=150 and code~=125) then
+        error("RETR data connection not opened." .. code)
+    end
+
+    local data=''
+    pcall(function()
+        while true do data=data .. t.socket.read(t.tunnel,1024) end
+    end)
+
+    t.socket.close(t.tunnel)
+    t.tunnel=nil
+
+    code,res=get_response(t.socket,t.handle)
+    if(code~=226 and code~=250) then
+        error("RETR data connection not finished." .. code)
+    end
+end
+
 local function ftp_close(t)
-    t.socket.close(t.handle)
+    if(t.handle) then
+        t.socket.close(t.handle)
+    end
+    if(t.tunnel) then
+        t.socket.close(t.tunnel)
+    end
 end
 
 local function FTP(socket_adapter)
@@ -121,6 +175,7 @@ local function FTP(socket_adapter)
     t.connect=ftp_connect
     t.list=ftp_list
     t.upload=ftp_upload
+    t.download=ftp_download
     t.close=ftp_close
     return t
 end
