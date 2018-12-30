@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.7.3-alpha"
+local grab_version="Grab v2.4.7.4-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -505,6 +505,17 @@ local function check_db()
     end
 end
 
+local function pairsKey(tb)
+    local tmp={}
+    for k in pairs(tb) do table.insert(tmp,k) end
+    table.sort(tmp)
+    local i=0
+    return function()
+        i=i+1
+        return tmp[i],tb[tmp[i]]
+    end,tb,nil
+end
+
 if(args[1]=="verify") then
     if(#args<2) then
         print("Nothing to verify.")
@@ -524,7 +535,7 @@ if(args[1]=="verify") then
                 local t,err=CheckAndLoad("return " .. content)
                 if(t) then 
                     print("[Verified] Contains the following library: ")
-                    for k in pairs(t) do
+                    for k in pairsKey(t) do
                         print(k)
                     end
                 else
@@ -743,7 +754,7 @@ if(args[1]=="install") then
     local count_libs=0
     local count_files=0
     io.write("\t")
-    for this_lib in pairs(to_install) do
+    for this_lib in pairsKey(to_install) do
         io.write(this_lib .. " ")
         count_libs=count_libs+1
         for k in pairs(db[this_lib].files) do
@@ -1039,7 +1050,7 @@ if(args[1]=="list") then
     if(not check_db()) then return end
 
     print("Listing projects...")
-    for this_lib in pairs(db) do
+    for this_lib in pairsKey(db) do
         if(not db[this_lib].hidden) then
             print(this_lib)
         end
@@ -1056,7 +1067,7 @@ if(args[1]=="search") then
     end
 
     print("Libraries matches '" .. args[2] .. "' :")
-    for this_lib in pairs(db) do
+    for this_lib in pairsKey(db) do
         if(string.match(this_lib,args[2])) then
             print(this_lib)
         end
