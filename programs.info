@@ -126,5 +126,16 @@
         requires={
             "libevent","checkarg","util","simple_data_structure"
         }
+    },
+    ["prtsc"]={
+        title="Print Screen",
+        info="Save screen to file when PrtSc key is pressed.",
+        author="Kiritow",
+        files={
+            "prtsc.lua"
+        },
+        requires={
+            "libevent"
+        }
     }
 }
