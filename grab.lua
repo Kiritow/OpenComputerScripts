@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.7.4-alpha"
+local grab_version="Grab v2.4.7.5-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -665,7 +665,7 @@ local function try_resolve_path(src,dst)
             return true,dst .. src_name
         end
     else -- dst is the filename
-        local tb_segdst=filesystem.segments(src)
+        local tb_segdst=filesystem.segments(dst)
         if(#tb_segdst>1) then
             local name=table.concat(tb_segdst,"/",1,#tb_segdst-1)
             if(not filesystem.makeDirectory(name) and not filesystem.exists(name)) then
