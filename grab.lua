@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.7.5-alpha"
+local grab_version="Grab v2.4.7.6-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -978,14 +978,14 @@ if(args[1]=="install") then
         print("Installing...")
         local has_installed={}
         local recursion_detect={}
-        local do_install_dfs=function(this_lib)
+        local function do_install_dfs(this_lib)
             if(recursion_detect[this_lib] or has_installed[this_lib]) then
                 return true
             end
             recursion_detect[this_lib]=true
 
             if(db[this_lib].requires) then
-                for req_lib in ipairs(db[this_lib].requires) do
+                for idx,req_lib in ipairs(db[this_lib].requires) do
                     if(not do_install_dfs(req_lib)) then -- Deeper Failure
                         return false
                     end
