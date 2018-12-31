@@ -8,8 +8,17 @@ local component=require('component')
 
 local args,options=shell.parse(...)
 
+local dprint
+if(options["q"]) then
+    dprint=function(...) end
+else
+    dprint=print
+end
+
 if(#args<1) then
-    print("Usage: prtsc <start|stop>")
+    print([==[Usage: prtsc <start|stop> [-q]
+Options: 
+    -q: Don't print anything while PrtSc is pressed.]==])
 elseif(args[1]=="start") then
     if(filesystem.exists('/tmp/.prtsc.evid')) then
         print("PrtSc service already started.")
@@ -23,20 +32,29 @@ elseif(args[1]=="start") then
                     local gpu=component.list('gpu')()
                     if(gpu) then
                         gpu=component.proxy(gpu)
+                        local tmp={}
+                        local w,h=gpu.getResolution()
+                        for i=1,h do
+                            for j=1,w do
+                                table.insert(tmp,(gpu.get(j,i)))
+                            end
+                            table.insert(tmp,'\n')
+                        end
+                        tmp=table.concat(tmp,"")
                         local name=os.tmpname()
                         local p=io.open(name,"w")
                         if(p) then
-                            local w,h=gpu.getResolution()
-                            for i=1,h do
-                                for j=1,w do
-                                    p:write((gpu.get(j,i)))
-                                end
-                                p:write('\n')
-                            end
-                            print("[PrtSc] Screen saved to " .. name)
+                            p:write(tmp)
                             p:close()
+                            dprint("[PrtSc] Screen saved to " .. name)
+                            local dbg=component.list("debug")()
+                            if(dbg) then
+                                dbg=component.proxy(dbg)
+                                dbg.sendToClipboard(e.playerName,tmp)
+                                dprint("[PrtSc] Screen saved to clipboard.")
+                            end
                         else
-                            print("[PrtSc] Unable to open file: " .. name)
+                            dprint("[PrtSc] Unable to open file: " .. name)
                         end
                     end
                 end
