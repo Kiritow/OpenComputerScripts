@@ -1,4 +1,4 @@
--- LibComp 
+-- LibCompress
 -- Another version of libhuffman for general purpose
 -- Created by Kiritow
 -- Use Lua 5.3 feature
@@ -12,7 +12,6 @@ local BitWriter
 BitWriter={
     _newobj_mt={
         ["__index"]=function(tb,key)
-            -- print("BitWriter.__index called: ",tb,key)
             if(type(key)=="string" and key~="new" and key:sub(1,1)~="_") then
                 return BitWriter[key]
             end
@@ -95,8 +94,6 @@ BitReader={
     },
 
     new=function(in_buffer,in_padlen)
-        print("BitReader created: buffer len ",in_buffer:len()," pad len",in_padlen)
-
         local this={}
         this.buffer=in_buffer
         this.padlen=in_padlen
@@ -125,7 +122,6 @@ BitReader={
             end
         end
 
-
         this.cached=this.cached-1
         return (this.working & ( 1 << (this.cached) )) > 0 and 1 or 0
     end,
@@ -150,8 +146,6 @@ BitReader={
 -- "A" --> 65 --> 0x41 --> "01000001"
 local function charToBitStr(c)
     local n=c:byte(1)
-    -- print("charToBitStr: ",c,n)
-
     local vtb={
         "0001","0010","0011","0100",
         "0101","0110","0111","1000",
@@ -198,7 +192,6 @@ local function hdef(data)
             writer:pushbit(1)
             writer:pushbits(charToBitStr(node[1]))
             dic[node[1]]=prefix
-            print(node[1] .. " --> " .. prefix)
         else
             writer:pushbit(0)
             if(node.L) then
@@ -232,7 +225,6 @@ local function hinf(data)
         local flag=reader:nextbit()
         if(flag==1) then
             xdic[prefix]=reader:nextchar()
-            print(prefix .. " --> " .. xdic[prefix])
         else
             _decode_tree(prefix .. "0")
             _decode_tree(prefix .. "1")
