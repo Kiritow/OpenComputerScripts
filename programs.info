@@ -79,7 +79,8 @@
         title="Compression Library",
         info="Inflate and deflate library for general purpose.",
         files={
-            ["libs/libcompress.lua"]="__lib__/"
+            ["libs/libcompress.lua"]="__lib__/",
+            ["bin/compress.lua"]="__bin__/"
         },
         requires={
             "libkeepup"
