@@ -3,10 +3,9 @@
         title="Grab",
         info="Grab - Official OpenComputerScripts Installer",
         files={
-            "grab.lua",
-            ["grab_installer.lua"]="/tmp/.grab_installer.lua"
-        },
-        installer="/tmp/.grab_installer.lua"
+            "grab.lua"="__bin__/",
+            ["grab_installer.lua"]="__installer__"
+        }
     },
     ["checkarg"]={
         title="Arugment Checker",
@@ -69,11 +68,21 @@
             "shrink.lua"
         }
     },
+    ["libkeepup"]={
+        title="Keep Up!",
+        info="Avoid 'too long without yielding' by keepUp",
+        files={
+            ["libs/libkeepup.lua"]="__lib__/"
+        }
+    }
     ["libcompress"]={
         title="Compression Library",
         info="Inflate and deflate library for general purpose.",
         files={
-            "libs/libcompress.lua"
+            ["libs/libcompress.lua"]="__lib__/"
+        },
+        requires={
+            "libkeepup"
         }
     },
     ["libhuffman"]={
