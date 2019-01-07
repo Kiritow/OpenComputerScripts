@@ -2,6 +2,9 @@
 -- Another version of libhuffman for general purpose
 -- Created by Kiritow
 -- Use Lua 5.3 feature
+-- This scripts can run with both OpenComputers and Standard Lua.
+
+local keepUp=require("libkeepup")(4)
 
 -- checkType(name,1,"string")
 local function checkType(arg,id,which)
@@ -170,6 +173,8 @@ local function hdef(data)
         end
     end
 
+    keepUp()
+
     local pool={}
     for k,v in pairs(ctb) do
         table.insert(pool,{k,v})
@@ -177,6 +182,7 @@ local function hdef(data)
 
     local poolsz=#pool
     repeat
+        keepUp()
         table.sort(pool,function(a,b) return a[2]>b[2] end)
         local t={nil,pool[poolsz-1][2]+pool[poolsz][2],L=pool[poolsz-1],R=pool[poolsz]}
         table.remove(pool)
@@ -188,6 +194,7 @@ local function hdef(data)
     local dic={}
     local writer=BitWriter.new()
     local function _encode_tree(node,prefix)
+        keepUp()
         if(node[1]) then
             writer:pushbit(1)
             writer:pushbits(charToBitStr(node[1]))
@@ -205,9 +212,13 @@ local function hdef(data)
     end
     _encode_tree(pool[1],"")
 
+    keepUp()
+
     for i=1,data:len() do
         writer:pushbits(dic[data:sub(i,i)])
     end
+
+    keepUp()
 
     local defdata,defpad=writer:get()
     return string.pack(">B",defpad) .. defdata
@@ -236,6 +247,7 @@ local function hinf(data)
     local output=''
     local working=''
     while true do
+        keepUp()
         local b=reader:nextbit()
         if(not b) then break end
         working=working .. b
