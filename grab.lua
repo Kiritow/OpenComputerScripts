@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.8-alpha"
+local grab_version="Grab v2.4.9-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -27,6 +27,7 @@ Options:
         function(Url : string): boolean, string
     --bin=<path> Set binary install root path.
     --lib=<path> Set library install root path.
+    -f,--force Force overwrite existing files.
     --skip-install Library installers will not be executed.
     --refuse-license <License> Set refused license. Separate multiple values with ','
     --accept-license <License> Set accepted license. Separate multiple values with ','
@@ -122,6 +123,8 @@ local valid_options={
     ["proxy"]="string", 
     ["bin"]="string",
     ["lib"]="string",
+    ["f"]=true,
+    ["force"]=true,
     ["skip-install"]=true, 
     ["refuse-license"]=true,
     ["accept-license"]=true,
@@ -721,6 +724,21 @@ local function miss_suggestion(wrong_name,ktb)
     return maxname,max
 end
 
+local function will_overwrite(filename)
+    if(options["f"] or options["force"]) then 
+        return false
+    else
+        local f=io.open(filename,"rb")
+        if(f) then
+            f:close()
+            print("[Error] Stop before overwrite regular file: " .. filename)
+            return true
+        else
+            return false
+        end
+    end
+end
+
 if(args[1]=="install") then
     if(#args<2) then 
         print("Nothing to install.")
@@ -940,6 +958,10 @@ if(args[1]=="install") then
                         return
                     end
 
+                    if(will_overwrite(fname)) then
+                        return
+                    end
+
                     local f=io.open(fname,"wb")
                     if(not f) then
                         print("[Error] Failed to open file " .. fname .. " for writing.")
@@ -958,6 +980,10 @@ if(args[1]=="install") then
                     for idx,this_name in ipairs(v) do
                         local ok,fname=try_resolve_path(k,this_name)
                         if(ok) then
+                            if(will_overwrite(fname)) then
+                                return
+                            end
+
                             local f=io.open(fname,"wb")
                             if(f) then
                                 local ok,err=f:write(result)
