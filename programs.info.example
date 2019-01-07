@@ -25,13 +25,22 @@
 
             -- Source file can also be placed in other directory.
             -- In this case, data will be downloaded to /tmp/this/dir/thisfile.lua.
-            ["placed/here/thisfile.lua"]="/tmp/this/dir",
+            ["placed/here/thisfile.lua"]="/tmp/this/dir/",
+
+            -- Destination directory can be __lib__ or __bin__
+            -- These marcos can be changed by starting grab with directory options. By default, 
+            -- __lib__ = /usr/lib
+            -- __bin__ = /usr/bin
+            -- If /etc/ is not writable, __lib__ and __bin__ will be resolved to /tmp
+            ["somelib.lua"]="__lib__/manylibs/",
 
             -- Key is string, and value is table. 
             -- File $key will be downloaded and Grab will try to save it as an element specified in $value.
+            -- $value can be directory.
+            -- If none target position is available, an error is raised and will abort the installation.
             ["otherfile.lua"]={ 
                 "/etc/somedir/some_name.lua",
-                "/tmp/another_name.lua",
+                "/tmp/another_name.lua"
             },
 
             -- Key is string, and value is __installer__.
@@ -69,8 +78,13 @@
         hidden=false,
 
         -- Optional
+        -- If set to true, this library is marked as deprecated.
+        deprecated=false,
+
+        -- Optional, Deprecated
         -- If presents, Grab will load and run it after downloading.
         -- The installer must be in files table.
+        -- This option is deprecated and might be removed in later versions. Use __installer__ instead.
         installer="somefile.lua",
 
         -- Optional (but important)

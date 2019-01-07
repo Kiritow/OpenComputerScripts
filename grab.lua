@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.7.7-alpha"
+local grab_version="Grab v2.4.8-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -25,6 +25,8 @@ Options:
         function(RepoName: string, Branch: string ,FileAddress: string): string
     --proxy=<Proxy File> Given a file which will be loaded and returns a proxy function like:
         function(Url : string): boolean, string
+    --bin=<path> Set binary install root path.
+    --lib=<path> Set library install root path.
     --skip-install Library installers will not be executed.
     --refuse-license <License> Set refused license. Separate multiple values with ','
     --accept-license <License> Set accepted license. Separate multiple values with ','
@@ -70,6 +72,7 @@ Notice:
         Thus require(...) calls on depended libraries is ok.
         From Grab v2.4.6, installer should return a function, which will be later called with a table filled with some information. (Currently, it contains version tag of Grab.)
         If nothing is returned, Grab will give an warning and ignore it.
+        From Grab v2.4.8, option `installer` is deprecated. Use __installer__ instead.
 ]===]
 
 -- Install man document
@@ -117,9 +120,11 @@ local valid_options={
     ["version"]=true, 
     ["router"]="string",
     ["proxy"]="string", 
+    ["bin"]="string",
+    ["lib"]="string",
     ["skip-install"]=true, 
     ["refuse-license"]=true,
-    ["accept-license"]=true
+    ["accept-license"]=true,
 }
 local valid_command={
     ["install"]=true,
@@ -655,23 +660,30 @@ end
 local function try_resolve_path(src,dst)
     -- TIPS:
     -- filesystem.makeDirectory(...) can throw error because it does not check arguments.
-    
-    -- TODO: this is a quick fix and will be rewrite later.
-    if(src==dst) then
-        print("[Warning] Quick fix method is called.")
+
+    if(type(src)~="string") then -- Only source path is specified in programs.info
         local segs=filesystem.segments(dst)
         return true,segs[#segs]
     end
 
-    if(dst:sub(dst:len())=='/') then -- dst is a directory.
+    dst=string.gsub(
+        string.gsub(
+            dst,
+            "__bin__",
+            options["bin"] or "/usr/bin"
+        ),
+        "__lib__",
+        options["lib"] or "/usr/lib"
+    )
+
+    if(dst:sub(dst:len())=='/') then -- dst is a directory. prepare it and build the filename.
         if(not filesystem.makeDirectory(dst) and not filesystem.exists(dst)) then
             return false,"Failed to create directory: " .. dst
         else
             local tb_segsrc=filesystem.segments(src)
-            local src_name=tb_segsrc[#tb_segsrc]
-            return true,dst .. src_name
+            return true,dst .. tb_segsrc[#tb_segsrc]
         end
-    else -- dst is the filename
+    else -- dst is the filename. Prepare directories.
         local tb_segdst=filesystem.segments(dst)
         if(#tb_segdst>1) then
             local name=table.concat(tb_segdst,"/",1,#tb_segdst-1)
@@ -826,7 +838,7 @@ if(args[1]=="install") then
                 print("Downloading license " .. db[this_lib].license.name .. " for library " .. this_lib .. " from: " .. db[this_lib].license.url)
                 local ok,result=download(db[this_lib].license.url)
                 if(not ok) then
-                    print("[Download Failed] Unable to download license.")
+                    print("[Download Failed] Failed to download license.")
                     return
                 end
 
@@ -922,7 +934,7 @@ if(args[1]=="install") then
                         toSave=v
                     end
 
-                    local ok,fname=try_resolve_path(toDownload,toSave)
+                    local ok,fname=try_resolve_path(k,toSave)
                     if(not ok) then
                         print("[Error] " .. fname)
                         return
@@ -944,7 +956,7 @@ if(args[1]=="install") then
                     local done=false
                     
                     for idx,this_name in ipairs(v) do
-                        local ok,fname=try_resolve_path(toDownload,this_name)
+                        local ok,fname=try_resolve_path(k,this_name)
                         if(ok) then
                             local f=io.open(fname,"wb")
                             if(f) then
@@ -1003,6 +1015,7 @@ if(args[1]=="install") then
             if(type(to_install[this_lib])=="string") then
                 this_installer=to_install[this_lib]
             elseif(db[this_lib].installer) then
+                print("[WARN] From Grab v2.4.8, option `installer` is deprecated. Use __installer__ instead.")
                 this_installer=db[this_lib].installer
             else
                 -- No Installer: Mark as installed.
