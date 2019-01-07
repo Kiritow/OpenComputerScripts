@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.7.6-alpha"
+local grab_version="Grab v2.4.7.7-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -655,6 +655,13 @@ end
 local function try_resolve_path(src,dst)
     -- TIPS:
     -- filesystem.makeDirectory(...) can throw error because it does not check arguments.
+    
+    -- TODO: this is a quick fix and will be rewrite later.
+    if(src==dst) then
+        print("[Warning] Quick fix method is called.")
+        local segs=filesystem.segments(dst)
+        return true,segs[#segs]
+    end
 
     if(dst:sub(dst:len())=='/') then -- dst is a directory.
         if(not filesystem.makeDirectory(dst) and not filesystem.exists(dst)) then
