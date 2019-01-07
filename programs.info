@@ -69,6 +69,13 @@
             "shrink.lua"
         }
     },
+    ["libcompress"]={
+        title="Compression Library",
+        info="Inflate and deflate library for general purpose.",
+        files={
+            "libs/libcompress.lua"
+        }
+    },
     ["libhuffman"]={
         title="Huffman compression library",
         info="Inflate and deflate in Huffman algorithm.",
