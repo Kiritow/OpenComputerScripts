@@ -5,8 +5,9 @@ local shell=require('shell')
 local libcompress=require('libcompress')
 local args,opts=shell.parse(...)
 
-if(args<2) then
+if(#args<2) then
     print("Usage:\n\tcompress [-dv] <source> <dest>")
+    return
 end
 
 local verbose=opts["v"] and print or function() end
