@@ -3,7 +3,7 @@
         title="Grab",
         info="Grab - Official OpenComputerScripts Installer",
         files={
-            "grab.lua"="__bin__/",
+            ["grab.lua"]="__bin__/",
             ["grab_installer.lua"]="__installer__"
         }
     },
@@ -11,21 +11,21 @@
         title="Arugment Checker",
         info="For easier argument checking",
         files={
-            ["libs/checkarg.lua"]="checkarg.lua"
+            ["libs/checkarg.lua"]="__lib__/"
         }
     },
     ["util"]={
         title="Utility",
         info="Misc programming helper.",
         files={
-            ["libs/util.lua"]="util.lua"
+            ["libs/util.lua"]="__lib__/"
         }
     },
     ["libevent"]={
         title="LibEvent",
         info="For easier event processing",
         files={
-            ["libs/libevent.lua"]="libevent.lua",
+            ["libs/libevent.lua"]="__lib__/",
             ["libs/libevent_doc.txt"]={
                 "/usr/man/libevent",
                 "/tmp/libevent_doc.txt"
@@ -39,23 +39,23 @@
         title="LibGPU",
         info="For easier gpu programming",
         files={
-            ["libs/libgpu.lua"]="libgpu.lua"
+            ["libs/libgpu.lua"]="__lib__/"
         }
     },
     ["simple_data_structure"]={
         title="Simple Lua Data Structure",
         info="Provides class(...),queue and vector",
         files={
-            ["libs/simple_data_structure/class.lua"]="class.lua", 
-            ["libs/simple_data_structure/queue.lua"]="queue.lua", 
-            ["libs/simple_data_structure/vector.lua"]="vector.lua"
+            ["libs/simple_data_structure/class.lua"]="__lib__/", 
+            ["libs/simple_data_structure/queue.lua"]="__lib__/", 
+            ["libs/simple_data_structure/vector.lua"]="__lib__/"
         }
     },
     ["minesweeper"]={
         title="Mine Sweeper",
         info="A simple game",
         files={
-            "MineSweeper.lua"
+            ["MineSweeper.lua"]="__bin__/"
         },
         requires={
             "libgpu","libevent","simple_data_structure"
@@ -65,7 +65,7 @@
         title="Shrink",
         info="Shrink string by removing useless spaces.",
         files={
-            "shrink.lua"
+            ["shrink.lua"]="__lib__/"
         }
     },
     ["libkeepup"]={
@@ -89,6 +89,7 @@
     ["libhuffman"]={
         title="Huffman compression library",
         info="Inflate and deflate in Huffman algorithm.",
+        deprecated=true,
         files={
             "libhuffman.lua"
         }
@@ -99,10 +100,10 @@
         author="Kiritow",
         contact="1362050620@qq.com",
         files={
-            ["programs/drone/drone_bios.lua"]="drone_bios.lua",
-            ["programs/drone/drone_console.lua"]="drone_console.lua",
-            ["programs/drone/drone_radar.lua"]="drone_radar.lua",
-            ["programs/drone/drone_flash.lua"]="drone_flash.lua"
+            "programs/drone/drone_bios.lua",
+            "programs/drone/drone_console.lua",
+            "programs/drone/drone_radar.lua",
+            "programs/drone/drone_flash.lua"
         },
         requires={
             "libevent", "shrink"
@@ -113,7 +114,7 @@
         info="Smarter chests, auto-crafting...",
         author="Kiritow",
         files={
-            ["programs/smartstorage/SmartStorage.lua"]="SmartStorage.lua"
+            "programs/smartstorage/SmartStorage.lua"
         },
         requires={
             "libevent"
@@ -124,7 +125,7 @@
         info="This is the client program of Smart Storage System.",
         author="Kiritow",
         files={
-            ["programs/smartstorage/SmartStorageRobot.lua"]="SmartStorageRobot.lua"
+            "programs/smartstorage/SmartStorageRobot.lua"
         },
         requires={
             "libevent"

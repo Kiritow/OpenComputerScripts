@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.9-alpha"
+local grab_version="Grab v2.4.9.1-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -371,8 +371,8 @@ local function VerifyDB(this_db)
     return true,"No error detected."
 end
 
-local function CheckAndLoadEx(raw_content)
-    local fn,err=load(raw_content)
+local function CheckAndLoadEx(raw_content,chunkname)
+    local fn,err=load(raw_content,chunkname)
     if(fn) then 
         local ok,result=pcall(fn)
         if(ok) then
@@ -382,8 +382,8 @@ local function CheckAndLoadEx(raw_content)
     return nil,err
 end
 
-local function CheckAndLoad(raw_content)
-    local result,err=CheckAndLoadEx(raw_content)
+local function CheckAndLoad(raw_content,chunkname)
+    local result,err=CheckAndLoadEx(raw_content,chunkname)
     if(not result) then
         return result,err
     end
@@ -482,7 +482,7 @@ if(args[1]=="update") then
     else
         print("[OK]")
         io.write("Validating... ")
-        local tb_data,validate_err=CheckAndLoad("return " .. result)
+        local tb_data,validate_err=CheckAndLoad("return " .. result,"Remote ProgramDB")
         result=nil -- release memory
         if(tb_data) then
             print("[OK]")
@@ -540,7 +540,7 @@ if(args[1]=="verify") then
             else
                 local content=f:read("*a")
                 f:close()
-                local t,err=CheckAndLoad("return " .. content)
+                local t,err=CheckAndLoad("return " .. content,"Local ProgramDB")
                 if(t) then 
                     print("[Verified] Contains the following library: ")
                     for k in pairsKey(t) do
@@ -556,7 +556,7 @@ if(args[1]=="verify") then
             if(not ok) then
                 print("[Download Failed] " .. result)
             else
-                local t,err=CheckAndLoad("return " .. result)
+                local t,err=CheckAndLoad("return " .. result,"Remote ProgramDB")
                 if(t) then 
                     print("[Verified] Contains the following library: ")
                     for k in pairs(t) do
@@ -594,7 +594,7 @@ if(args[1]=="add") then
             else
                 local content=f:read("*a")
                 f:close()
-                local t,err=CheckAndLoad("return " .. content)
+                local t,err=CheckAndLoad("return " .. content,"Local ProgramDB")
                 if(t) then 
                     print("Updating with local file: " .. filename)
                     local fname=CreateDB(t,true)
@@ -613,7 +613,7 @@ if(args[1]=="add") then
             if(not ok) then
                 print("[Download Failed] " .. result)
             else
-                local t,err=CheckAndLoad("return " .. result)
+                local t,err=CheckAndLoad("return " .. result,"Remote ProgramDB")
                 if(t) then 
                     print("Updating with downloaded content...")
                     local fname=CreateDB(t,true)
@@ -750,6 +750,10 @@ if(args[1]=="install") then
     end
 
     if(not check_db()) then return end
+
+    if(options["f"] or options["force"]) then
+        print("[WARN] Using force mode. I sure hope you know what you are doing.")
+    end
 
     local to_install={}
     for i=2,#args,1 do
