@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.10.9-alpha"
+local grab_version="Grab v2.4.10.10-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -28,6 +28,7 @@ Options:
     --bin=<path> Set binary install root path.
     --lib=<path> Set library install root path.
     -f,--force Force overwrite existing files.
+    -y,--yes Skip interactive confirm.
     --skip-install Library installers will not be executed.
     --refuse-license <License> Set refused license. Separate multiple values with ','
     --accept-license <License> Set accepted license. Separate multiple values with ','
@@ -126,6 +127,8 @@ local valid_options={
     ["lib"]="string",
     ["f"]=true,
     ["force"]=true,
+    ["y"]=true,
+    ["yes"]=true,
     ["skip-install"]=true, 
     ["refuse-license"]=true,
     ["accept-license"]=true,
@@ -159,7 +162,12 @@ for k,v in pairs(options) do
     end
 end
 
-if( (#args<1 and not next(options)) or options["help"]) then
+if( #args<1 and not next(options) ) then
+    print("grab: try 'grab --help' for more information.")
+    return
+end
+
+if(options["help"]) then
     show_usage()
     return
 end
@@ -167,6 +175,14 @@ end
 if(options["version"]) then
     print(grab_version)
     return
+end
+
+local function optionYes()
+    return options["y"] or options["yes"]
+end
+
+local function optionForce()
+    return options["f"] or options["force"]
 end
 
 local function check_internet()
@@ -733,7 +749,7 @@ local function miss_suggestion(wrong_name,ktb)
 end
 
 local function will_overwrite(filename)
-    if(options["f"] or options["force"]) then 
+    if(optionForce()) then 
         return false
     else
         local f=io.open(filename,"rb")
@@ -759,7 +775,7 @@ if(args[1]=="install") then
 
     if(not check_db()) then return end
 
-    if(options["f"] or options["force"]) then
+    if(optionForce()) then
         print("[WARN] Using force mode. I sure hope you know what you are doing.")
     end
 
@@ -822,6 +838,16 @@ if(args[1]=="install") then
     if(next(warn_libs_unofficial)) then
         print("[WARN] The following libraries are unofficial. Install at your own risk.")
         print("\t" .. table.concat(warn_libs_unofficial," "))
+    end
+
+    -- If more libraries will be installed, pop up a confirm.
+    if(count_libs>#args-1 and not optionYes()) then
+        print("Do you want to continue? [Y/n]")
+        local line=io.read("l")
+        if(not (line=="" or line.sub(1,1)=="Y" or line.sub(1,1)=="y")) then
+            print("Aborted.")
+            return
+        end
     end
 
     -- Third-Party programs or unofficial programs may have license.
@@ -1113,7 +1139,7 @@ if(args[1]=="uninstall") then
 
     print("Checking programs info...")
 
-    if(options["f"] or options["force"]) then
+    if(optionForce()) then
         print("[WARN] Using force mode. I sure hope you know what you are doing.")
     end
 
@@ -1133,19 +1159,23 @@ if(args[1]=="uninstall") then
             return
         else
             for k,v in pairs(db[this_lib].files) do
-                local ok,filename=try_resolve_path(k,v,true)
-                if(not ok) then
-                    print("[Resolve Error] " .. filename)
-                    return
+                if(v~="__installer__") then -- Skip the installer
+                    local ok,filename=try_resolve_path(k,v,true)
+                    if(not ok) then
+                        print("[Resolve Error] " .. filename)
+                        return
+                    end
+                    if(filename.sub(1,5)~="/tmp/") then -- Files in /tmp/ are not checked and will not be removed by uninstall.
+                        if(not optionForce() and not filesystem.exists(filename)) then
+                            print("[Error] Library " .. this_lib .. " check failed.")
+                            print("[Error] Missing file: " .. filename)
+                            print("[Error] Library might be corrupted or missing. Try reinstall it or uninstall it in force mode.")
+                            return
+                        end
+                    end
+                    count_byte=count_byte+filesystem.size(filename)
+                    table.insert(this_files,filename)
                 end
-                if(not (options["f"] or options["force"]) and not filesystem.exists(filename)) then
-                    print("[Error] Library " .. this_lib .. " check failed.")
-                    print("[Error] Missing file: " .. filename)
-                    print("[Error] Library might be corrupted or missing. Try reinstall it or uninstall it in force mode.")
-                    return
-                end
-                count_byte=count_byte+filesystem.size(filename)
-                table.insert(this_files,filename)
             end
         end
     end
@@ -1161,6 +1191,15 @@ if(args[1]=="uninstall") then
     end
     print("\n" .. count_libs .. " libraries will be uninstalled. " .. count_files .. " files will be removed. " .. getshowbyte(count_byte) .. " disk space will be freed.")
 
+    if(count_libs>1 and not optionYes()) then
+        print("Do you want to continue? [Y/n]")
+        local line=io.read("l")
+        if(not (line=="" or line.sub(1,1)=="Y" or line.sub(1,1)=="y")) then
+            print("Aborted.")
+            return
+        end
+    end
+
     print("Removing...")
     local id_current=0
     for this_lib,this_files in pairs(to_uninstall) do
@@ -1170,7 +1209,7 @@ if(args[1]=="uninstall") then
             
             local ok,err=filesystem.remove(filename)
             if(not ok) then
-                if(not (options["f"] or options["force"])) then
+                if(not optionForce()) then
                     print("[Failed] " .. err)
                     return
                 else
