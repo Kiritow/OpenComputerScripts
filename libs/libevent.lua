@@ -195,13 +195,51 @@ local function doInternalEventInit()
         t["event"]=raw_event[1]
         t["address"]=raw_event[2]
         t["id"]=raw_event[3]
-        t["label"]=raw_evnet[4]
+        t["label"]=raw_event[4]
     end
 
     tb["bioReader"]=function(raw_event,t)
         t["event"]=raw_event[1]
         t["address"]=raw_event[2]
         t["uuid"]=raw_event[3]
+    end
+
+    -- OpenGlasses
+
+    tb["glasses_on"]=function(raw_event,t)
+        t["user"]=raw_event[1]
+    end
+
+    tb["glasses_off"]=tb["glasses_on"]
+
+    tb["interact_world_left"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["user"]=raw_event[3]
+        t["pos"]={
+            ["x"]=raw_event[4],
+            ["y"]=raw_event[5],
+            ["z"]=raw_event[6]
+        }
+        t["look"]={
+            ["x"]=raw_event[7],
+            ["y"]=raw_event[8],
+            ["z"]=raw_event[9]
+        }
+        t["eyeHeight"]=raw_event[10]
+    end
+
+    tb["interact_world_right"]=tb["interact_world_left"]
+
+    tb["interact_overlay"]=function(raw_event,t)
+        t["event"]=raw_event[1]
+        t["address"]=raw_event[2]
+        t["user"]=raw_event[3]
+        t["button"]=raw_event[4]
+        t["x"]=raw_event[5]
+        t["y"]=raw_event[6]
+        t["width"]=raw_event[7]
+        t["height"]=raw_event[8]
     end
 
     --- LibNetBox
