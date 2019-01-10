@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.10.6-alpha"
+local grab_version="Grab v2.4.10.9-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -662,9 +662,15 @@ local function getshowspeed(n)
     end
 end
 
-local function try_resolve_path(src,dst)
+local function try_resolve_path(src,dst,only_parse)
     -- TIPS:
     -- filesystem.makeDirectory(...) can throw error because it does not check arguments.
+    local fsMakeDir
+    if(not only_parse) then
+        fsMakeDir=filesystem.makeDirectory
+    else
+        fsMakeDir=function() return true end
+    end
 
     if(type(src)~="string") then -- Only source path is specified in programs.info
         local segs=filesystem.segments(dst)
@@ -682,7 +688,7 @@ local function try_resolve_path(src,dst)
     )
 
     if(dst:sub(dst:len())=='/') then -- dst is a directory. prepare it and build the filename.
-        if(not filesystem.makeDirectory(dst) and not filesystem.exists(dst)) then
+        if(not fsMakeDir(dst) and not filesystem.exists(dst)) then
             return false,"Failed to create directory: " .. dst
         else
             local tb_segsrc=filesystem.segments(src)
@@ -692,7 +698,7 @@ local function try_resolve_path(src,dst)
         local tb_segdst=filesystem.segments(dst)
         if(#tb_segdst>1) then
             local name=table.concat(tb_segdst,"/",1,#tb_segdst-1)
-            if(not filesystem.makeDirectory(name) and not filesystem.exists(name)) then
+            if(not fsMakeDir(name) and not filesystem.exists(name)) then
                 return false,"Failed to create directory: " .. name
             end
         end
@@ -1105,12 +1111,19 @@ if(args[1]=="uninstall") then
         return
     end
 
-    local to_uninstall={}
-    for i=2,#args do
-        to_uninstall[args[i]]=true
+    print("Checking programs info...")
+
+    if(options["f"] or options["force"]) then
+        print("[WARN] Using force mode. I sure hope you know what you are doing.")
     end
 
-    for this_lib in pairs(to_uninstall) do
+    local to_uninstall={}
+    for i=2,#args do
+        to_uninstall[args[i]]={}
+    end
+
+    local count_byte=0
+    for this_lib,this_files in pairs(to_uninstall) do
         if(not db[this_lib]) then
             print("Library '" .. this_lib .. "' not found.")
             local maybe_this=miss_suggestion(this_lib,db)
@@ -1118,6 +1131,22 @@ if(args[1]=="uninstall") then
                 print("Do you mean '" .. maybe_this .. "'")
             end
             return
+        else
+            for k,v in pairs(db[this_lib].files) do
+                local ok,filename=try_resolve_path(k,v,true)
+                if(not ok) then
+                    print("[Resolve Error] " .. filename)
+                    return
+                end
+                if(not (options["f"] or options["force"]) and not filesystem.exists(filename)) then
+                    print("[Error] Library " .. this_lib .. " check failed.")
+                    print("[Error] Missing file: " .. filename)
+                    print("[Error] Library might be corrupted or missing. Try reinstall it or uninstall it in force mode.")
+                    return
+                end
+                count_byte=count_byte+filesystem.size(filename)
+                table.insert(this_files,filename)
+            end
         end
     end
 
@@ -1125,37 +1154,28 @@ if(args[1]=="uninstall") then
     local count_libs=0
     local count_files=0
     io.write("\t")
-    for this_lib in pairsKey(to_uninstall) do
+    for this_lib,this_files in pairsKey(to_uninstall) do
         io.write(this_lib .. " ")
         count_libs=count_libs+1
-        for k in pairs(db[this_lib].files) do
-            count_files=count_files+1
-        end
+        count_files=count_files+#this_files
     end
-    print("\n" .. count_libs .. " libraries will be uninstalled. " .. count_files .. " files will be removed.")
+    print("\n" .. count_libs .. " libraries will be uninstalled. " .. count_files .. " files will be removed. " .. getshowbyte(count_byte) .. " disk space will be freed.")
 
     print("Removing...")
-    local count_byte=0
     local id_current=0
-    for this_lib in pairs(to_uninstall) do
-        for k,v in pairs(db[this_lib].files) do
+    for this_lib,this_files in pairs(to_uninstall) do
+        for k,filename in pairs(this_files) do
             id_current=id_current+1
-            io.write("[" .. id_current .. "/" .. count_files .. "] Resolving... ")
-
-            local ok,filename=try_resolve_path(k,v)
-            if(not ok) then
-                print("[Error] " .. filename)
-                return
-            end
-
-            term.clearLine()
             io.write("[" .. id_current .. "/" .. count_files .. "] Deleting " .. filename .. " for " .. this_lib .. "... ")
             
-            count_byte=count_byte+filesystem.size(filename)
             local ok,err=filesystem.remove(filename)
             if(not ok) then
-                print("[Failed] " .. err)
-                return
+                if(not (options["f"] or options["force"])) then
+                    print("[Failed] " .. err)
+                    return
+                else
+                    print("[Skipped] " .. err)
+                end
             else
                 print("[OK]")
             end
