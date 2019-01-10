@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.9.1-alpha"
+local grab_version="Grab v2.4.10.3-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -32,7 +32,8 @@ Options:
     --refuse-license <License> Set refused license. Separate multiple values with ','
     --accept-license <License> Set accepted license. Separate multiple values with ','
 Command:
-    install <Project> ...: Install projects. Dependency will be downloaded automatically.
+    install <Project> ...: Install projects. Dependency will be installed automatically.
+    uninstall <Project> ...: Uninstall projects.  Dependency will not be removed automatically.
     verify <Provider> ... : Verify program provider info.
     add <Provider> ... : Add program provider info.
     update: Update program info.
@@ -76,8 +77,8 @@ Notice:
         From Grab v2.4.8, option `installer` is deprecated. Use __installer__ instead.
 ]===]
 
--- Install man document
-local function _update_document()
+-- Install man document.
+local function _local_install()
     local f=io.open("/etc/grab/grab.version","w")
     if(f) then
         f:write(grab_version)
@@ -90,14 +91,14 @@ local function _update_document()
     end
 end
 if(not filesystem.exists("/etc/grab/grab.version")) then
-    _update_document()
+    _local_install()
 else
     local f=io.open("/etc/grab/grab.version","r")
     if(f) then
         local installed_version=f:read("a")
         f:close()
         if(installed_version~=grab_version) then
-            _update_document()
+            _local_install()
         end
     end
 end
@@ -131,6 +132,7 @@ local valid_options={
 }
 local valid_command={
     ["install"]=true,
+    ["uninstall"]=true,
     ["verify"]=true,
     ["add"]=true,
     ["update"]=true,
@@ -791,7 +793,7 @@ if(args[1]=="install") then
         end
     end
 
-    print("About to install the following libraries...")
+    print("About to install the following libraries:")
     local count_libs=0
     local count_files=0
     io.write("\t")
@@ -1095,6 +1097,56 @@ if(args[1]=="install") then
     print("Installed " .. count_libs .. " libraies with " .. count_files .. " files.")
     return
 end
+
+if(args[1]=="uninstall") then
+    if(not check_db()) then return end
+    if(#args<2) then
+        print("Nothing to uninstall.")
+        return
+    end
+
+    local to_uninstall={}
+    for i=2,#args do
+        to_uninstall[args[i]]=true
+    end
+
+    print("About to uninstall the following libraries:")
+    local count_libs=0
+    local count_files=0
+    io.write("\t")
+    for this_lib in pairsKey(to_uninstall) do
+        io.write(this_lib .. " ")
+        count_libs=count_libs+1
+        for k in pairs(db[this_lib].files) do
+            count_files=count_files+1
+        end
+    end
+    print("\n" .. count_libs .. " libraries will be uninstalled. " .. count_files .. " files will be removed.")
+
+    print("Removing...")
+    local count_byte=0
+    local id_current=0
+    for this_lib in pairs(to_uninstall) do
+        for k,v in pairs(db[this_lib].files) do
+            id_current=id_current+1
+
+            local filename=try_resolve_path(k,v)
+            io.write("[" .. id_current .. "/" .. count_files .. "] Deleting " .. filename .. " for " .. this_lib .. "... ")
+            count_byte=count_byte+filesystem.size(filename)
+            local ok,err=filesystem.remove(filename)
+            if(not ok) then
+                print("[Failed] " .. err)
+                return
+            else
+                print("[OK]")
+            end
+        end
+    end
+
+    print("Removed " .. count_libs .. " libraries. " .. getshowbyte(count_byte) .. " disk space freed.")
+    return
+end
+
 
 if(args[1]=="list") then
     if(not check_db()) then return end
