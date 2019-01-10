@@ -15,269 +15,299 @@ local function doInternalEventInit()
     -- tb is a reference to event table.
     local tb=internal_evtb
 
-    tb["component_added"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["componentType"]=raw_event[3]
+    tb["component_added"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["type"]=e[3]
+
+        t["componentType"]=e[3]
     end
 
     tb["component_removed"]=tb["component_added"]
 
-    tb["component_available"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["componentType"]=raw_event[2]
+    tb["component_available"]=function(e,t)
+        t["event"]=e[1]
+        t["type"]=e[2]
+
+        t["componentType"]=e[2]
     end
 
     tb["component_unavailable"]=tb["component_available"]
 
-    tb["term_available"]=function(raw_event,t)
-        t["event"]=raw_event[1]
+    tb["term_available"]=function(e,t)
+        t["event"]=e[1]
     end
 
     tb["term_unavailable"]=tb["term_available"]
 
-    tb["screen_resized"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["screenAddress"]=raw_event[2]
-        t["newWidth"]=raw_event[3]
-        t["newHeight"]=raw_event[4]
+    tb["screen_resized"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["width"]=e[3]
+        t["height"]=e[4]
+
+        t["screenAddress"]=e[2]
+        t["newWidth"]=e[3]
+        t["newHeight"]=e[4]
     end
 
-    tb["touch"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["screenAddress"]=raw_event[2]
-        t["x"]=raw_event[3]
-        t["y"]=raw_event[4]
-        t["button"]=raw_event[5]
-        t["playerName"]=raw_event[6]
+    tb["touch"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["x"]=e[3]
+        t["y"]=e[4]
+        t["button"]=e[5]
+        t["player"]=e[6]
+
+        t["screenAddress"]=e[2]
+        t["playerName"]=e[6]
     end
 
     tb["drag"]=tb["touch"]
     tb["drop"]=tb["touch"]
 
-    tb["scroll"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["screenAddress"]=raw_event[2]
-        t["x"]=raw_event[3]
-        t["y"]=raw_event[4]
-        t["direction"]=raw_event[5]
-        t["playerName"]=raw_event[6]
+    tb["scroll"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["x"]=e[3]
+        t["y"]=e[4]
+        t["direction"]=e[5]
+        t["player"]=e[6]
+
+        t["screenAddress"]=e[2]
+        t["playerName"]=e[6]
     end
 
-    tb["walk"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["screenAddress"]=raw_event[2]
-        t["x"]=raw_event[3]
-        t["y"]=raw_event[4]
-        t["playerName"]=raw_event[5]
+    tb["walk"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["x"]=e[3]
+        t["y"]=e[4]
+        t["player"]=e[5]
+
+        t["screenAddress"]=e[2]
+        t["playerName"]=e[5]
     end
 
-    tb["key_down"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["keyboardAddress"]=raw_event[2]
-        t["char"]=raw_event[3]
-        t["code"]=raw_event[4]
-        t["playerName"]=raw_event[5]
+    tb["key_down"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["char"]=e[3]
+        t["code"]=e[4]
+        t["player"]=e[5]
+
+        t["keyboardAddress"]=e[2]
+        t["playerName"]=e[5]
     end
 
     tb["key_up"]=tb["key_down"]
 
-    tb["clipboard"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["keyboardAddress"]=raw_event[2]
-        t["value"]=raw_event[3]
-        t["playerName"]=raw_event[4]
+    tb["clipboard"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["value"]=e[3]
+        t["player"]=e[4]
+
+        t["keyboardAddress"]=e[2]
+        t["playerName"]=e[4]
     end
 
-    tb["redstone_changed"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["side"]=raw_event[3]
-        t["oldValue"]=raw_event[4]
-        t["newValue"]=raw_event[5]
+    tb["redstone_changed"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["side"]=e[3]
+        t["oldValue"]=e[4]
+        t["newValue"]=e[5]
     end
 
-    tb["motion"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["relativeX"]=raw_event[3]
-        t["relativeY"]=raw_event[4]
-        t["relativeZ"]=raw_event[5]
-        t["entityName"]=raw_event[6]
+    tb["motion"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["x"]=e[3]
+        t["y"]=e[4]
+        t["z"]=e[5]
+        t["entityName"]=e[6]
+
+        t["relativeX"]=e[3]
+        t["relativeY"]=e[4]
+        t["relativeZ"]=e[5]
     end
 
-    tb["modem_message"]=function(raw_event,t) --- Special
-        t["event"]=raw_event[1]
-        t["receiverAddress"]=raw_event[2]
-        t["senderAddress"]=raw_event[3]
-        t["port"]=raw_event[4]
-        t["distance"]=raw_event[5]
+    tb["modem_message"]=function(e,t) --- Special
+        t["event"]=e[1]
+        t["receiver"]=e[2]
+        t["sender"]=e[3]
+        t["port"]=e[4]
+        t["distance"]=e[5]
         t["data"]={}
-        for i=6,raw_event.n,1 do 
-            t["data"][i-5]=raw_event[i]
+        for i=6,e.n,1 do 
+            t["data"][i-5]=e[i]
         end
-        t["data"].n=raw_event.n-5
+        t["data"].n=e.n-5
+
+        t["receiverAddress"]=e[2]
+        t["senderAddress"]=e[3]
     end
 
-    tb["inventory_changed"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["slot"]=raw_event[2]
+    tb["inventory_changed"]=function(e,t)
+        t["event"]=e[1]
+        t["slot"]=e[2]
     end
 
-    tb["bus_message"]=function(raw_event,t) --- Can data or metadata be table?
-        t["event"]=raw_event[1]
-        t["protocolId"]=raw_event[2]
-        t["senderAddress"]=raw_event[3]
-        t["targetAddress"]=raw_event[4]
-        t["data"]=raw_event[5]
-        t["metadata"]=raw_event[6]
+    tb["bus_message"]=function(e,t)
+        t["event"]=e[1]
+        t["protocolId"]=e[2]
+        t["senderAddress"]=e[3]
+        t["targetAddress"]=e[4]
+        t["data"]=e[5]
+        t["metadata"]=e[6]
     end
 
-    tb["interrupted"]=function(raw_event,t) --- Should soft interrupt be a special event?
-        t["event"]=raw_event[1]
-        t["uptime"]=raw_event[2]
+    tb["interrupted"]=function(e,t)
+        t["event"]=e[1]
+        t["uptime"]=e[2]
     end
 
     --- Computronics
     
-    tb["minecart"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["detectorAddress"]=raw_event[2]
-        t["minecartType"]=raw_event[3]
-        t["minecartName"]=raw_event[4]
-        t["primaryColor"]=raw_event[5]
-        t["secondaryColor"]=raw_event[6]
-        t["destination"]=raw_event[7]
-        t["ownerName"]=raw_event[8]
+    tb["minecart"]=function(e,t)
+        t["event"]=e[1]
+        t["detectorAddress"]=e[2]
+        t["minecartType"]=e[3]
+        t["minecartName"]=e[4]
+        t["primaryColor"]=e[5]
+        t["secondaryColor"]=e[6]
+        t["destination"]=e[7]
+        t["ownerName"]=e[8]
     end
 
-    tb["aspect_changed"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["signalName"]=raw_event[3]
-        t["signalValue"]=raw_event[4]
+    tb["aspect_changed"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["signalName"]=e[3]
+        t["signalValue"]=e[4]
     end
 
-    tb["chat_message"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["username"]=raw_event[3]
-        t["message"]=raw_event[4]
+    tb["chat_message"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["username"]=e[3]
+        t["message"]=e[4]
     end
 
-    tb["switch_flipped"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["index"]=raw_event[3]
-        t["newState"]=raw_event[4]
+    tb["switch_flipped"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["index"]=e[3]
+        t["newState"]=e[4]
     end
 
     --- OpenSecurity
 
-    tb["magData"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["user"]=raw_event[3]
-        t["content"]=raw_event[4]
-        t["uuid"]=raw_event[5]
-        t["locked"]=raw_event[6]
-        t["side"]=raw_event[7]
+    tb["magData"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["user"]=e[3]
+        t["content"]=e[4]
+        t["uuid"]=e[5]
+        t["locked"]=e[6]
+        t["side"]=e[7]
     end
 
-    tb["cardInsert"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
+    tb["cardInsert"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
     end
 
     tb["cardRemove"]=tb["cardInsert"]
 
-    tb["keypad"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["id"]=raw_event[3]
-        t["label"]=raw_event[4]
+    tb["keypad"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["id"]=e[3]
+        t["label"]=e[4]
     end
 
-    tb["bioReader"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["uuid"]=raw_event[3]
+    tb["bioReader"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["uuid"]=e[3]
     end
 
     -- OpenGlasses
 
-    tb["glasses_on"]=function(raw_event,t)
-        t["user"]=raw_event[1]
+    tb["glasses_on"]=function(e,t)
+        t["user"]=e[1]
     end
 
     tb["glasses_off"]=tb["glasses_on"]
 
-    tb["interact_world_left"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["user"]=raw_event[3]
+    tb["interact_world_left"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["user"]=e[3]
         t["pos"]={
-            ["x"]=raw_event[4],
-            ["y"]=raw_event[5],
-            ["z"]=raw_event[6]
+            ["x"]=e[4],
+            ["y"]=e[5],
+            ["z"]=e[6]
         }
         t["look"]={
-            ["x"]=raw_event[7],
-            ["y"]=raw_event[8],
-            ["z"]=raw_event[9]
+            ["x"]=e[7],
+            ["y"]=e[8],
+            ["z"]=e[9]
         }
-        t["eyeHeight"]=raw_event[10]
+        t["eyeHeight"]=e[10]
     end
 
     tb["interact_world_right"]=tb["interact_world_left"]
 
-    tb["interact_overlay"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["address"]=raw_event[2]
-        t["user"]=raw_event[3]
-        t["button"]=raw_event[4]
-        t["x"]=raw_event[5]
-        t["y"]=raw_event[6]
-        t["width"]=raw_event[7]
-        t["height"]=raw_event[8]
+    tb["interact_overlay"]=function(e,t)
+        t["event"]=e[1]
+        t["address"]=e[2]
+        t["user"]=e[3]
+        t["button"]=e[4]
+        t["x"]=e[5]
+        t["y"]=e[6]
+        t["width"]=e[7]
+        t["height"]=e[8]
     end
 
     --- LibNetBox
 
-    tb["net_message"]=function(raw_event,t)
-        t["event"]=raw_event[1]
-        t["receiverAddress"]=raw_event[2]
-        t["senderAddress"]=raw_event[3]
-        t["port"]=raw_event[4]
+    tb["net_message"]=function(e,t)
+        t["event"]=e[1]
+        t["receiverAddress"]=e[2]
+        t["senderAddress"]=e[3]
+        t["port"]=e[4]
         t["data"]={}
-        for i=5,raw_event.n,1 do 
-            t["data"][i-4]=raw_event[i]
+        for i=5,e.n,1 do 
+            t["data"][i-4]=e[i]
         end
-        t["data"].n=raw_event.n-4;
+        t["data"].n=e.n-4;
     end
 
     -- Mark as inited.
     _hasInited=true
 end
 
-local function TranslateEvent(raw_event)
-    if(raw_event==nil) then return nil end
+local function TranslateEvent(e)
+    if(e==nil) then return nil end
 
     local t={}
-    local name=raw_event[1]
+    local name=e[1]
     if(name==nil) then return nil end
 
     t["event"]=name
 
     -- Standard Events
     if(internal_evtb[name]~=nil) then
-        internal_evtb[name](raw_event,t)
+        internal_evtb[name](e,t)
     -- External Events
     elseif(internal_evtbex[name]~=nil) then
-        internal_evtbex[name](raw_event,t)
+        internal_evtbex[name](e,t)
     -- Unknown Events. Args is packed into t.data (instead of returning the list)
     else
-        t["data"]=table.pack(raw_event,2)
+        t["data"]=table.pack(e,2)
     end
 
     setmetatable(t,{__index=function(xt,xk)
@@ -302,8 +332,8 @@ function AddEventListener(EventName,CallbackFunction)
     checkfunction(CallbackFunction)
     return event.listen(EventName,
         function(...)
-            local raw_event=table.pack(...)
-            local rt=table.pack(TranslateEvent(raw_event))
+            local e=table.pack(...)
+            local rt=table.pack(TranslateEvent(e))
             if(type(rt[1])=="table") then
                 return CallbackFunction(rt[1])
             else
