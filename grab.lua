@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.10.3-alpha"
+local grab_version="Grab v2.4.10.6-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -1110,6 +1110,17 @@ if(args[1]=="uninstall") then
         to_uninstall[args[i]]=true
     end
 
+    for this_lib in pairs(to_uninstall) do
+        if(not db[this_lib]) then
+            print("Library '" .. this_lib .. "' not found.")
+            local maybe_this=miss_suggestion(this_lib,db)
+            if(maybe_this) then
+                print("Do you mean '" .. maybe_this .. "'")
+            end
+            return
+        end
+    end
+
     print("About to uninstall the following libraries:")
     local count_libs=0
     local count_files=0
@@ -1129,9 +1140,17 @@ if(args[1]=="uninstall") then
     for this_lib in pairs(to_uninstall) do
         for k,v in pairs(db[this_lib].files) do
             id_current=id_current+1
+            io.write("[" .. id_current .. "/" .. count_files .. "] Resolving... ")
 
-            local filename=try_resolve_path(k,v)
+            local ok,filename=try_resolve_path(k,v)
+            if(not ok) then
+                print("[Error] " .. filename)
+                return
+            end
+
+            term.clearLine()
             io.write("[" .. id_current .. "/" .. count_files .. "] Deleting " .. filename .. " for " .. this_lib .. "... ")
+            
             count_byte=count_byte+filesystem.size(filename)
             local ok,err=filesystem.remove(filename)
             if(not ok) then
