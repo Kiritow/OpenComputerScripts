@@ -2,8 +2,9 @@ NAME
     libevent - For easier event handling.
 
 FUNCTIONS
-    SetEventTranslator(event_name : string, callback : function)
-        Set external event translator.
+    SetEventTranslator(event_name : string, [callback : function]) : nil or function
+        Set external event translator. Pass nil to unregister it.
+        Return the old event translator.
     
     AddEventListener(EventName : string, CallbackFunction : function) : number
         Add event listener. Return event listener id.

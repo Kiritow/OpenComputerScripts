@@ -1,6 +1,7 @@
 require("checkarg")
 local event=require("event")
-local uuid=require("uuid")
+
+local libevent_version="LibEvent 20190111-1655"
 
 -- Internal event translating function table. ex is for custom events.
 local internal_evtb={}
@@ -290,13 +291,13 @@ local function doInternalEventInit()
     _hasInited=true
 end
 
+-- Always return event pack or nil.
 local function TranslateEvent(e)
-    if(e==nil) then return nil end
+    -- nil or named nil
+    if(not e or not e[1]) then return nil end
 
     local t={}
     local name=e[1]
-    if(name==nil) then return nil end
-
     t["event"]=name
 
     -- Standard Events
@@ -324,7 +325,9 @@ function SetEventTranslator(event_name,callback)
     if(callback~=nil) then 
         checkfunction(callback) 
     end 
+    local old=internal_evtbex[event_name]
     internal_evtbex[event_name]=callback
+    return old
 end
 
 function AddEventListener(EventName,CallbackFunction)
@@ -332,12 +335,9 @@ function AddEventListener(EventName,CallbackFunction)
     checkfunction(CallbackFunction)
     return event.listen(EventName,
         function(...)
-            local e=table.pack(...)
-            local rt=table.pack(TranslateEvent(e))
-            if(type(rt[1])=="table") then
-                return CallbackFunction(rt[1])
-            else
-                return CallbackFunction(table.unpack(rt))
+            local e=TranslateEvent(table.pack(...))
+            if(e) then
+                return CallbackFunction(e)
             end
         end)
 end
@@ -512,3 +512,5 @@ end
 
 --- Init Library on load
 doInternalEventInit()
+
+return libevent_version
