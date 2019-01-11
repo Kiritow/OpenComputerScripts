@@ -114,7 +114,7 @@
         info="Smarter chests, auto-crafting...",
         author="Kiritow",
         files={
-            "programs/smartstorage/SmartStorage.lua"
+            ["programs/smartstorage/SmartStorage.lua"]="__bin__/"
         },
         requires={
             "libevent"
@@ -125,7 +125,7 @@
         info="This is the client program of Smart Storage System.",
         author="Kiritow",
         files={
-            "programs/smartstorage/SmartStorageRobot.lua"
+            ["programs/smartstorage/SmartStorageRobot.lua"]="__bin__/"
         },
         requires={
             "libevent"
@@ -150,7 +150,7 @@
         info="Save screen to file when PrtSc key is pressed.",
         author="Kiritow",
         files={
-            "prtsc.lua"
+            ["prtsc.lua"]="__bin__/"
         },
         requires={
             "libevent"
@@ -184,7 +184,7 @@
         files={
             ["programs/mcnet/mcnet_core.lua"]="__lib__/",
             ["programs/mcnet/libmcnet.lua"]="__lib__/",
-            ["programs/mcnet/mcnetd.lua"]="__bin__",
+            ["programs/mcnet/mcnetd.lua"]="__bin__/",
         }
     }
 }
