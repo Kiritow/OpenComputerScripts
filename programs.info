@@ -176,5 +176,15 @@
         requires={
             "libevent"
         }
+    },
+    ["mcnet-exp"]={
+        title="MC Network (Experimental)",
+        experimental=true,
+        info="MC Network based on modem networks.",
+        files={
+            ["programs/mcnet/mcnet_core.lua"]="__lib__/",
+            ["programs/mcnet/libmcnet.lua"]="__lib__/",
+            ["programs/mcnet/mcnetd.lua"]="__bin__",
+        }
     }
 }
