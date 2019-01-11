@@ -40,9 +40,14 @@ if(not modem.open(22)) then
     return
 end
 
-print("Connecting to " .. server .. " at port " .. port)
+if(opts["b"]) then
+    print("Broadcasting at port " .. port)
+    modem.broadcast(port,"fs_req",filename)
+else
+    print("Connecting to " .. server .. " at port " .. port)
+    modem.send(server,port,"fs_req",filename)
+end
 print("Press Ctrl+C will stop this process")
-modem.send(server,port,"fs_req",filename)
 while true do
     local e=WaitMultipleEvent("modem_message","interrupted")
     if(e.event=="modem_message" and e.port==22) then
@@ -58,7 +63,7 @@ while true do
                 if(not ret) then
                     print("[Error] Failed while writing file: " .. err)
                 else
-                    print("[Done] Data written to file: " .. err)
+                    print("[Done] Data written to file: " .. localfile)
                 end
                 f:close()
             end

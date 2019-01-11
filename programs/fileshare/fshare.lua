@@ -100,6 +100,6 @@ if(opts["d"]) then
     PushEvent(thisid)
     print("[Done] FileShare Server started.")
 else -- Run in foreground
-    fss_server_main()
+    fss_server_main(print,table.pack("modem_message","fss_stop","interrupted"))
     print("[Stopped] File Share Server stopped.")
 end
