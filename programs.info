@@ -156,7 +156,7 @@
             "libevent"
         }
     },
-    ["pcmgr-dev"]={
+    ["pcmgr"]={
         title="PC Manager",
         info="PC Manager shows current listeners and memory use.",
         files={
@@ -166,4 +166,15 @@
             "libevent"
         }
     },
+    ["fileshare"]={
+        title="File Share",
+        info="Share files between computers",
+        files={
+            ["programs/fileshare/fshare.lua"]="__bin__/",
+            ["programs/fileshare/fget.lua"]="__bin__/"
+        },
+        requires={
+            "libevent"
+        }
+    }
 }
