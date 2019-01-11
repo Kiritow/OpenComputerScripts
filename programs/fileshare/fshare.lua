@@ -1,10 +1,11 @@
 local component=require("component")
 local shell=require("shell")
-local uuid=require('uuid')
 local filesystem=require('filesystem')
 require("libevent")
 
-print("File Share Server")
+local fshare_version="v1.1"
+
+print("File Share Server " .. fshare_version)
 print("Author: Github/Kiritow")
 
 local args,opts=shell.parse(...)
@@ -63,9 +64,44 @@ if(not modem.open(port)) then
     return 
 end
 
-local function fss_server_main(xprint,to_wait)
+if(opts["d"]) then
+    local xprint
+    if(opts["v"]) then
+        xprint=print
+    else
+        xprint=function() end
+    end
+    local a=AddEventListener("modem_message",function(e)
+        if(e.port==port and e.data[1]=="fs_req") then
+            local filename=e.data[2]
+            local realpath=filesystem.concat(dir,filename)
+            xprint("Requesting: " .. realpath)
+            local f=io.open(realpath,"rb")
+            if(not f) then
+                xprint("Not found: " .. realpath)
+                modem.send(e.sender,22,"fs_ans_err")
+            else
+                local content=f:read("*a")
+                f:close()
+                modem.send(e.sender,22,"fs_ans_ok",content)
+                xprint("Sent: " .. realpath)
+            end
+        end
+    end)
+    AddEventListener("fss_stop",function(e)
+        if(e.data[1]==port) then
+            xprint("Stopped by event.")
+            RemoveEventListener(a)
+            modem.close(port)
+            PushEvent("fss_stopped")
+            return false -- unregister itself.
+        end
+    end)
+    print("[Done] FileShare Server started.")
+else -- Run in foreground
+    local xprint=print
     while true do
-        local e=WaitMultipleEvent(table.unpack(to_wait))
+        local e=WaitMultipleEvent("modem_message","fss_stop","interrupted")
         if(e.event=="interrupted") then
             xprint("Interrupted by user.")
             break
@@ -90,16 +126,7 @@ local function fss_server_main(xprint,to_wait)
             break
         end
     end
-end
 
-if(opts["d"]) then
-    local thisid=uuid.next()
-    AddEventListener(thisid,function()
-        fss_server_main(function() end,table.pack("modem_message","fss_stop"))
-    end)
-    PushEvent(thisid)
-    print("[Done] FileShare Server started.")
-else -- Run in foreground
-    fss_server_main(print,table.pack("modem_message","fss_stop","interrupted"))
+    modem.close(port)
     print("[Stopped] File Share Server stopped.")
 end

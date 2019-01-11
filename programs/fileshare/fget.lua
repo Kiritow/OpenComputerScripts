@@ -2,7 +2,9 @@ local component=require("component")
 local shell=require("shell")
 require("libevent")
 
-print("File Share Client")
+local fget_version="v1.1"
+
+print("File Share Client " .. fget_version)
 print("Author: Github/Kiritow")
 
 local args,opts=shell.parse(...)
