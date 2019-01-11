@@ -32,4 +32,4 @@
 
 `grab` 
 
-可通过查看[Grab文档](DOC_Grab_zhCN.md)了解更多用法.
+推荐使用`grab --help`查看帮助(英文)，也可通过查看[Grab文档](DOC_Grab_zhCN.md)了解更多用法.

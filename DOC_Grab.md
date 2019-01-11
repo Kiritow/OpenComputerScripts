@@ -29,6 +29,23 @@
 
     Given a file which will be loaded and returns a proxy function like:
     function(Url : string): boolean, string
+
+*--bin=\<Path>*
+
+    Set binary install root path. Default to /usr/bin
+
+*--lib=\<Path>*
+
+    Set library install root path. Default to /usr/lib
+
+*-f* , *--force*
+
+    Force overwrite existing files.
+
+*-y* , *--yes*
+
+    Skip interactive confirm.
+    The interactive confirm is required only when libraries to be installed have dependencies
     
 *--skip-install*
 
@@ -46,7 +63,11 @@
 
 **install \<Project> ...**
 
-    Install projects. Dependency will be downloaded automatically.
+    Install projects. Dependency will be installed automatically.
+
+**uninstall \<Project> ...**
+
+    Uninstall projects. Dependency will NOT be removed automatically.
 
 **verify \<Provider> ...**
 

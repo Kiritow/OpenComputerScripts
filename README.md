@@ -29,4 +29,4 @@ Then start it with:
 
 `grab` 
 
-For more information about Grab, see [Grab Documentation](DOC_Grab.md)
+For more information about Grab, run `grab --help` (recommended) or see [Grab Documentation](DOC_Grab.md)
