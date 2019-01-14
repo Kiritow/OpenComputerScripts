@@ -187,5 +187,15 @@
             ["programs/mcnet/libmcnet.lua"]="__lib__/",
             ["programs/mcnet/mcnetd.lua"]="__bin__/",
         }
-    }
+    },
+    ["romaker"]={
+        title="EEPROM Maker",
+        info="EEPROM Maker with syntax check and code shortening.",
+        files={
+            ["programs/romaker/makerom.lua"]="__bin__/"
+        },
+        requires={
+            "libevent","shrink"
+        },
+    },
 }
