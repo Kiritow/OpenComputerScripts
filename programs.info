@@ -65,7 +65,8 @@
         title="Shrink",
         info="Shrink string by removing useless spaces.",
         files={
-            ["shrink.lua"]="__lib__/"
+            ["shrink.lua"]="__lib__/",
+            ["shrinkfsm.lua"]="__lib__/"
         }
     },
     ["libkeepup"]={
