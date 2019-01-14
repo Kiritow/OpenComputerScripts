@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.10.10-alpha"
+local grab_version="Grab v2.4.10.12-alpha"
 local grab_version_info={
     version=grab_version
 }
@@ -34,7 +34,7 @@ Options:
     --accept-license <License> Set accepted license. Separate multiple values with ','
 Command:
     install <Project> ...: Install projects. Dependency will be installed automatically.
-    uninstall <Project> ...: Uninstall projects.  Dependency will not be removed automatically.
+    uninstall <Project> ...: Uninstall projects. Dependency will NOT be removed automatically.
     verify <Provider> ... : Verify program provider info.
     add <Provider> ... : Add program provider info.
     update: Update program info.
@@ -840,11 +840,11 @@ if(args[1]=="install") then
         print("\t" .. table.concat(warn_libs_unofficial," "))
     end
 
-    -- If more libraries will be installed, pop up a confirm.
-    if(count_libs>#args-1 and not optionYes()) then
-        print("Do you want to continue? [Y/n]")
+    -- If more libraries will be installed or unofficial libraries present, pop up a confirm.
+    if(not optionYes() and (count_libs>#args-1 or next(warn_libs_unofficial))) then
+        io.write("Do you want to continue? [Y/n]: ")
         local line=io.read("l")
-        if(not (line=="" or line.sub(1,1)=="Y" or line.sub(1,1)=="y")) then
+        if(not (line:len()<1 or line:sub(1,1)=="Y" or line:sub(1,1)=="y")) then
             print("Aborted.")
             return
         end
@@ -1190,15 +1190,6 @@ if(args[1]=="uninstall") then
         count_files=count_files+#this_files
     end
     print("\n" .. count_libs .. " libraries will be uninstalled. " .. count_files .. " files will be removed. " .. getshowbyte(count_byte) .. " disk space will be freed.")
-
-    if(count_libs>1 and not optionYes()) then
-        print("Do you want to continue? [Y/n]")
-        local line=io.read("l")
-        if(not (line=="" or line.sub(1,1)=="Y" or line.sub(1,1)=="y")) then
-            print("Aborted.")
-            return
-        end
-    end
 
     print("Removing...")
     local id_current=0
