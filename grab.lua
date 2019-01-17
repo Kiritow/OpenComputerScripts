@@ -9,9 +9,10 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.10.12-alpha"
-local grab_version_info={
-    version=grab_version
+local grab_version="Grab v2.4.10.13-alpha"
+local grab_infos={
+    version=grab_version,
+    grab_options=options
 }
 
 local usage_text=[===[Grab - Official OpenComputerScripts Installer
@@ -73,7 +74,7 @@ Notice:
     Installer
         A package can provide an installer for Grab. It will be loaded and executed after the package is ready.
         Thus require(...) calls on depended libraries is ok.
-        From Grab v2.4.6, installer should return a function, which will be later called with a table filled with some information. (Currently, it contains version tag of Grab.)
+        From Grab v2.4.6, installer should return a function, which will be later called with a table filled with some information.
         If nothing is returned, Grab will give an warning and ignore it.
         From Grab v2.4.8, option `installer` is deprecated. Use __installer__ instead.
 ]===]
@@ -1097,7 +1098,7 @@ if(args[1]=="install") then
                 if(not ok) then
                     print("[Installer Error]: " .. xerr)
                 elseif(type(xerr)=="function") then
-                    if(not pcall(xerr,grab_version_info)) then
+                    if(not pcall(xerr,grab_infos)) then
                         print("[Installer Error]: " .. xerr)
                     else
                         has_installed[this_lib]=true
