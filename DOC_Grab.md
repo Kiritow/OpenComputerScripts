@@ -1,5 +1,7 @@
 # Grab Documentation
 
+Applies To: Grab 2.4
+
 ## Grab - Official OpenComputerScripts Installer
 
 ### Usage
