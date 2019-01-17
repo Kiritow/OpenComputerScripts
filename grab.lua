@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.4.10.13-alpha"
+local grab_version="Grab v2.5.0-alpha"
 local grab_infos={
     version=grab_version,
     grab_options=options
@@ -19,10 +19,10 @@ local usage_text=[===[Grab - Official OpenComputerScripts Installer
 Usage:
     grab [<options>] <command> ...
 Options:
-    --cn Use mirror site in China. By default grab will download from Github. This might be useful for only official packages.
+    --cn Skip link check and use mirror site in China. See Link check in Notice for more information.
     --help Display this help page.
     --version Display version and exit.
-    --router=<Router File> Given a file which will be loaded and returns a route function like:
+    --router=<Router File> [Deprecated] Given a file which will be loaded and returns a route function like:
         function(RepoName: string, Branch: string ,FileAddress: string): string
     --proxy=<Proxy File> Given a file which will be loaded and returns a proxy function like:
         function(Url : string): boolean, string
@@ -61,10 +61,11 @@ Notice:
         You can also install packages from unofficial program provider with Grab, but Grab will not check its security.
         Notice that override of official packages is not allowed.
     Router and Proxy
-        route_func(RepoName: string, Branch: string ,FileAddress: string): string
+        [Deprecated] route_func(RepoName: string, Branch: string ,FileAddress: string): string
             A route function takes repo, branch and file address as arguments, and returns a resolved url.
             It can be used to boost downloading by redirecting requests to mirror site.
             As router functions can be used to redirect requests, Grab will give an warning if --router option presents.
+            [Warning] --router option is deprecated and will be removed in future.
         proxy_func(Url : string): boolean, string
             A proxy function takes url as argument, and returns at least 2 values.
             It can be used to handle different protocols or low-level network operations like downloading files via SOCKS5 proxy or in-game modem network.
@@ -77,6 +78,9 @@ Notice:
         From Grab v2.4.6, installer should return a function, which will be later called with a table filled with some information.
         If nothing is returned, Grab will give an warning and ignore it.
         From Grab v2.4.8, option `installer` is deprecated. Use __installer__ instead.
+    Link Check
+        Grab will perform a link check before downloading anything. The link check will choose to download from Github or mirror site in China.
+        This might only be useful for official packages.
 ]===]
 
 -- Install man document.
@@ -234,37 +238,6 @@ local function default_downloader(url)
     return true,result
 end
 
-local UrlGenerator
-if(not options["router"]) then
-    if(not options["cn"]) then 
-        UrlGenerator=function(RepoName,Branch,FileAddress)
-            return "https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
-        end
-    else
-        UrlGenerator=function(RepoName,Branch,FileAddress)
-            return "http://kiritow.com:3000/" .. RepoName .. "/raw/" .. Branch .. "/" .. FileAddress
-        end
-    end
-else
-    local ok,err=pcall(function()
-        local fn,xerr=loadfile(options["router"])
-        if(not fn) then 
-            error(xerr) 
-        else 
-            UrlGenerator=fn()
-            if(type(UrlGenerator)~="function") then
-                error("Loaded router returns " .. type(UrlGenerator) .. " instead of a function.")
-            end
-        end
-    end)
-    if(not ok) then
-        print("Unable to load router file: " .. err)
-        return
-    end
-
-    print("[WARN] Router presents. Be aware of security issues.")
-end
-
 local download
 if(not options["proxy"]) then
     download=default_downloader
@@ -296,21 +269,56 @@ else
     print("[WARN] Proxy presents. Be aware of security issues.")
 end
 
-local function IsOfficial(tb_package)
-    if(tb_package.repo==nil and 
-        tb_package.proxy==nil and 
-        tb_package.provider==nil
-    ) then
+local function link_check()
+    local ok,data=download("http://registry.kiritow.com/gateway")
+    if(ok and data=="CN") then
         return true
     else
         return false
     end
 end
 
-local function IsTrusted(tb_package)
-    if(tb_package.provider) then
-        -- TODO: Check Provider by comparing with online trusted list.
-        return false
+local function _MirrorUrlGen(RepoName,Branch,FileAddress)
+    return "http://kiritow.com:3000/" .. RepoName .. "/raw/" .. Branch .. "/" .. FileAddress
+end
+local function _GithubUrlGen(RepoName,Branch,FileAddress)
+    return "https://raw.githubusercontent.com/" .. RepoName .. "/" .. Branch .. "/" .. FileAddress
+end
+
+local UrlGenerator
+if(not options["router"]) then
+    if(options["cn"] or link_check()) then
+        UrlGenerator=_MirrorUrlGen
+    else
+        UrlGenerator=_GithubUrlGen
+    end
+else
+    print("[WARN] --router option is deprecated and will be removed in future.")
+    local ok,err=pcall(function()
+        local fn,xerr=loadfile(options["router"])
+        if(not fn) then 
+            error(xerr) 
+        else 
+            UrlGenerator=fn()
+            if(type(UrlGenerator)~="function") then
+                error("Loaded router returns " .. type(UrlGenerator) .. " instead of a function.")
+            end
+        end
+    end)
+    if(not ok) then
+        print("Unable to load router file: " .. err)
+        return
+    end
+
+    print("[WARN] Router presents. Be aware of security issues.")
+end
+
+local function IsOfficial(tb_package)
+    if(tb_package.repo==nil and 
+        tb_package.proxy==nil and 
+        tb_package.provider==nil
+    ) then
+        return true
     else
         return false
     end
