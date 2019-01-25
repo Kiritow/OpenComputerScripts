@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.5.1-alpha"
+local grab_version="Grab v2.5.1.1-alpha"
 local grab_infos={
     version=grab_version,
     grab_options=options
@@ -502,6 +502,28 @@ local function CreateDB(tb,checked) -- If checked, merging is not allowed.
     end
 end
 
+local function GetDBVersion()
+    local f=io.open(grab_dir .. "/list.version","rb")
+    if(not f) then
+        return ''
+    else
+        local s=f:read("*a")
+        f:close()
+        return s
+    end
+end
+
+local function SaveDBVersion(ver)
+    local f=io.open(grab_dir .. "/list.version","wb")
+    if(not f) then
+        return false
+    else
+        f:write(ver)
+        f:close()
+        return true
+    end
+end
+
 if(args[1]=="clear") then
     print("Clearing programs info...")
     filesystem.remove(grab_dir .. "/programs.info")
@@ -512,11 +534,25 @@ end
 if(args[1]=="update") then
     if(not check_internet()) then return end
 
-    print("Updating programs info....")
-    io.write("Downloading... ")
-    local ok,result=download(UrlGenerator("Kiritow/OpenComputerScripts","master","programs.info"))
+    print("Checking package list version...")
+    local ok,result=download("http://registry.kiritow.com/listver")
     if(not ok) then
         print("[Failed] " .. result)
+        return
+    end
+    if(GetDBVersion()==result) then
+        print("Already up to date.")
+        return
+    end
+
+    local remoteVer=result
+
+    print("Updating package list....")
+    io.write("Downloading... ")
+    ok,result=download("http://registry.kiritow.com/list/" .. remoteVer)
+    if(not ok) then
+        print("[Failed] " .. result)
+        return
     else
         print("[OK]")
         io.write("Validating... ")
@@ -528,14 +564,19 @@ if(args[1]=="update") then
             local dbfilename=CreateDB(tb_data,false)
             if(dbfilename) then
                 print("[OK]")
-                print("Programs info updated and saved to " .. dbfilename)
+                print("Package list updated and saved to " .. dbfilename)
             else
-                print("[Failed] Unable to save programs info")
+                print("[Failed] Unable to save package list.")
+                return
             end
         else
             print("[Failed]" .. validate_err)
+            return
         end
     end
+
+    print("Updating package list version...")
+    SaveDBVersion(remoteVer)
 
     return 
 end
