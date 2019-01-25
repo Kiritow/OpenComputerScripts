@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.5.0-alpha"
+local grab_version="Grab v2.5.1-alpha"
 local grab_infos={
     version=grab_version,
     grab_options=options
@@ -324,8 +324,27 @@ local function IsOfficial(tb_package)
     end
 end
 
-local db_dirs={"/etc/grab",".grab","/tmp/.grab"}
-local db_positions={"/etc/grab/programs.info",".grab/programs.info","/tmp/.grab/programs.info"}
+local grab_dir=''
+
+local function CheckGrabDir()
+    local locations={"/etc/grab","/home/.grab","/tmp/.grab"}
+    for idx,position in ipairs(locations) do
+        if(filesystem.isDirectory(position)) then
+            grab_dir=position
+            return true
+        else
+            local ok=filesystem.makeDirectory(position)
+            if(ok) then grab_dir=position return true end
+        end
+    end
+    return false
+end
+if(not CheckGrabDir()) then
+    print("[Error] Grab working directory not usable.")
+    return
+else
+    print("Grab directory: " .. grab_dir)
+end
 
 local function VerifyDB(this_db)
     for k,t in pairs(this_db) do
@@ -434,10 +453,9 @@ local function ReadDB(read_from_this)
         end
     end
 
-    for idx,filename in ipairs(db_positions) do 
-        local a,b=ReadDB(filename)
-        if(a) then return a,b end
-    end
+    local filename=grab_dir .. "/programs.info"
+    local a,b=ReadDB(filename)
+    if(a) then return a,b end
 
     return nil
 end
@@ -468,32 +486,25 @@ local function UpdateDB(main_tb,new_tb,checked) -- Change values with same key i
 end
 
 local function CreateDB(tb,checked) -- If checked, merging is not allowed.
-    for idx,dirname in ipairs(db_dirs) do
-        filesystem.makeDirectory(dirname) -- buggy
-    end
-    for idx,filename in ipairs(db_positions) do
-        local main_db=ReadDB(filename)
-        if(main_db) then
-            if(not UpdateDB(main_db,tb,checked)) then
-                return nil
-            end
-            if(WriteDB(filename,main_db)) then
-                return filename
-            end
-        else 
-            if(WriteDB(filename,tb)) then
-                return filename
-            end
+    local filename=grab_dir .. "/programs.info"
+    local main_db=ReadDB(filename)
+    if(main_db) then
+        if(not UpdateDB(main_db,tb,checked)) then
+            return nil
+        end
+        if(WriteDB(filename,main_db)) then
+            return filename
+        end
+    else 
+        if(WriteDB(filename,tb)) then
+            return filename
         end
     end
-    return nil
 end
 
 if(args[1]=="clear") then
     print("Clearing programs info...")
-    for idx,filename in pairs(db_positions) do
-        filesystem.remove(filename)
-    end
+    filesystem.remove(grab_dir .. "/programs.info")
     print("Programs info cleaned. You may want to run `grab update` now.")
     return 
 end
