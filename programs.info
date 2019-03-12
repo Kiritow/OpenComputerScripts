@@ -205,4 +205,14 @@
             "libevent","shrink"
         },
     },
+    ["audiostreamer"]={
+        title="Audio Streamer",
+        info="Audio Streamer. Online convertion from mp3 to dfpwm is provided by Kiritow/OCAudioServer. See https://github.com/Kiritow/OCAudioServer for more info.",
+        files={
+            ["programs/audiostreamer/aplay.lua"]="__bin__/"
+        },
+        requires={
+            "libdownload"
+        }
+    },
 }
