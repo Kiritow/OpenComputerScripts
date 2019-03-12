@@ -9,7 +9,7 @@ local event=require('event')
 local term=require('term')
 local args,options=shell.parse(...)
 
-local grab_version="Grab v2.5.1.1-alpha"
+local grab_version="Grab v2.5.1.2-alpha"
 local grab_infos={
     version=grab_version,
     grab_options=options
@@ -536,20 +536,25 @@ if(args[1]=="update") then
 
     print("Checking package list version...")
     local ok,result=download("http://registry.kiritow.com/listver")
-    if(not ok) then
-        print("[Failed] " .. result)
-        return
-    end
-    if(GetDBVersion()==result) then
-        print("Already up to date.")
-        return
-    end
+    local remoteURL
+    local remoteVer
 
-    local remoteVer=result
+    if(not ok) then
+        print("[Skipped] Skipped package list version checking: " .. result)
+        remoteURL=UrlGenerator('Kiritow/OpenComputerScripts','master','programs.info')
+        remoteVer=nil
+    else
+        if(GetDBVersion()==result) then
+            print("Already up to date.")
+        else
+            remoteURL="http://registry.kiritow.com/list/" .. result
+            remoteVer=result
+        end
+    end
 
     print("Updating package list....")
     io.write("Downloading... ")
-    ok,result=download("http://registry.kiritow.com/list/" .. remoteVer)
+    ok,result=download(remoteURL)
     if(not ok) then
         print("[Failed] " .. result)
         return
@@ -576,7 +581,11 @@ if(args[1]=="update") then
     end
 
     print("Updating package list version...")
-    SaveDBVersion(remoteVer)
+    if(remoteVer) then
+        SaveDBVersion(remoteVer)
+    else
+        print("[Skipped] Not update from registry.")
+    end
 
     return 
 end
