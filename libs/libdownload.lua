@@ -6,7 +6,7 @@ local function Download(url,param)
     if(device==nil) then
         error("The downloader requires an Internet card.")
     end
-    local handle=device.request(url)
+    local handle=device.request(url,param["data"])
     while true do
         local ret,err=handle.finishConnect()
         if(ret==nil) then
