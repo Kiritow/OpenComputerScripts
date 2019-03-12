@@ -87,6 +87,13 @@
             "libkeepup"
         }
     },
+    ["libdownload"]={
+        title="Download Library",
+        info="Download library for general use",
+        files={
+            ["libs/libdownload.lua"]="__lib__/"
+        }
+    },
     ["libhuffman"]={
         title="Huffman compression library",
         info="Inflate and deflate in Huffman algorithm.",
