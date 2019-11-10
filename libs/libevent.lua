@@ -308,7 +308,7 @@ local function TranslateEvent(e)
         internal_evtbex[name](e,t)
     -- Unknown Events. Args is packed into t.data (instead of returning the list)
     else
-        t["data"]=table.pack(e,2)
+        t["data"]=table.pack(table.unpack(e, 2))
     end
 
     setmetatable(t,{__index=function(xt,xk)
